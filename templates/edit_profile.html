@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Profile - Mobicité</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 30px;
+            max-width: 600px;
+            margin: auto;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        label {
+            display: block;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        input[type="text"], input[type="email"] {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            box-sizing: border-box;
+        }
+
+        button {
+            margin-top: 30px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Edit Your Profile</h1>
+    <form method="POST">
+        <label for="first_name">First Name:</label>
+        <input type="text" name="first_name" id="first_name" value="{{ profile.first_name }}" required>
+
+        <label for="last_name">Last Name:</label>
+        <input type="text" name="last_name" id="last_name" value="{{ profile.last_name }}" required>
+
+        <label for="address">Address:</label>
+        <input type="text" name="address" id="address" value="{{ profile.address }}" required>
+
+        <label for="email">Email:</label>
+        <input type="email" name="email" id="email" value="{{ profile.email }}" required>
+
+        <label for="license">Driver's License:</label>
+        <input type="text" name="license" id="license" value="{{ profile.license }}" required>
+
+        <button type="submit">Save Changes</button>
+    </form>
+
+    <a href="{{ url_for('index') }}" class="back-link">← Back to Home</a>
+</body>
+</html>

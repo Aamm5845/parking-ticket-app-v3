@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mobicité Receipt Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        input[type="text"], input[type="date"], input[type="time"] {
+            width: 300px;
+            padding: 5px;
+        }
+        .form-container {
+            margin-top: 20px;
+            padding: 10px 20px;
+        }
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .profile-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .circle-initials {
+            background-color: #007bff;
+            color: white;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .profile-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .profile-actions a {
+            text-decoration: none;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <h1>Mobicité Receipt Generator</h1>
+        {% if profile and 'first_name' in profile and 'last_name' in profile %}
+        <div class="profile-badge">
+            <div class="circle-initials">
+                {{ profile['first_name'][0] }}{{ profile['last_name'][0] }}
+            </div>
+            <div class="profile-actions">
+                <span>{{ profile['first_name'] }} {{ profile['last_name'] }}</span>
+                <a href="{{ url_for('edit_profile') }}">Edit Profile</a>
+                <a href="{{ url_for('signout') }}">Sign Out</a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if profile %}
+    <div class="form-container">
+        <form action="/generate" method="POST">
+            <label for="ticket_number">Ticket Number (9 digits):</label>
+            <input type="text" id="ticket_number" name="ticket_number" required>
+
+            <label for="space">Space Number:</label>
+            <input type="text" id="space" name="space" required>
+
+            <label for="date">Date:</label>
+            <input type="date" id="date" name="date" required>
+
+            <label for="start_time">Start Time:</label>
+            <input type="time" id="start_time" name="start_time" required>
+
+            <button type="submit">Generate PDF</button>
+        </form>
+    </div>
+    {% else %}
+    <p>You are not signed in. <a href="{{ url_for('signin') }}"><b>Click here to sign in</b></a>.</p>
+    {% endif %}
+</body>
+</html>
