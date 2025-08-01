@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, send_file, session
+from flask import Flask, render_template, request, redirect, url_for, send_file, session, jsonify
 import os
 import json
 from datetime import datetime, timedelta
@@ -9,6 +9,18 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
 import re
+
+# IMPORTANT: These are the new imports for OCR.
+try:
+    from PIL import Image
+    import pytesseract
+    # On some systems, you may need to explicitly set the path to your Tesseract executable.
+    # For example: pytesseract.pytesseract.tesseract_cmd = r'/usr/local/bin/tesseract'
+except ImportError:
+    Image = None
+    pytesseract = None
+    print("Warning: Pillow or pytesseract not found. OCR functionality will be disabled.")
+
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
@@ -28,13 +40,16 @@ if os.path.exists(PROFILE_PATH):
 else:
     profiles = {}
 
+# --- Existing Routes ---
 @app.route('/')
 def index():
+    """Renders the main page, checking for a user profile in the session."""
     profile = session.get('profile')
     return render_template('index.html', profile=profile)
 
 @app.route('/signin', methods=['GET', 'POST'])
 def signin():
+    """Handles user sign-in/profile creation. Stores profile in a file and session."""
     if request.method == 'POST':
         profile = {
             'first_name': request.form['first_name'],
@@ -53,6 +68,7 @@ def signin():
 
 @app.route('/edit_profile', methods=['GET', 'POST'])
 def edit_profile():
+    """Handles editing an existing user profile."""
     profile = session.get('profile')
     if not profile:
         return redirect(url_for('signin'))
@@ -71,11 +87,16 @@ def edit_profile():
 
 @app.route('/signout')
 def signout():
+    """Logs the user out by removing their profile from the session."""
     session.pop('profile', None)
     return redirect(url_for('index'))
 
 @app.route('/generate', methods=['POST'])
 def generate():
+    """
+    Generates a PDF receipt based on form data.
+    This route's logic remains unchanged from your original code.
+    """
     data = request.form
 
     ticket_number = data['ticket_number']
@@ -146,9 +167,85 @@ def generate():
 
     return send_file(FILLED_PDF, as_attachment=True)
 
+
+# --- NEW: Route for handling the OCR request ---
+@app.route('/scan-ticket', methods=['POST'])
+def scan_ticket():
+    """
+    Handles an image upload, performs OCR to extract text, and returns a JSON response.
+    """
+    # Check if OCR libraries are available
+    if not Image or not pytesseract:
+        return jsonify(success=False, message="OCR libraries are not installed on the server.")
+
+    # Check if a file was sent in the request
+    if 'ticket_image' not in request.files:
+        return jsonify(success=False, message="No image file provided.")
+
+    file = request.files['ticket_image']
+    if file.filename == '':
+        return jsonify(success=False, message="No file selected.")
+
+    if file:
+        try:
+            # Open the image file from the request stream
+            image = Image.open(file.stream)
+            
+            # Perform OCR on the image to get raw text.
+            # Using 'eng+fra' for English and French language support.
+            raw_text = pytesseract.image_to_string(image, lang='eng+fra')
+
+            # --- OCR TEXT PARSING LOGIC (Updated based on your ticket image) ---
+            ticket_number = ""
+            space_number = ""
+            extracted_date = ""
+            extracted_time = ""
+
+            # 1. Capture the 9-digit ticket number with spaces and remove spaces
+            # Pattern: 3 digits, optional space, 3 digits, optional space, 3 digits
+            ticket_match = re.search(r'\b(\d{3})\s*(\d{3})\s*(\d{3})\b', raw_text)
+            if ticket_match:
+                # Combine the captured groups without spaces
+                ticket_number = ticket_match.group(1) + ticket_match.group(2) + ticket_match.group(3)
+
+            # 2. Capture the "PL" space number, which is more specific.
+            # This avoids picking up "PLATEAU".
+            space_match = re.search(r'(PL\d+)', raw_text, re.IGNORECASE)
+            if space_match:
+                space_number = space_match.group(1).upper() # .upper() for consistency
+
+            # 3. Capture the second date and time (the 'to' date)
+            # This is the updated, more robust regex to capture the 'to' date and time.
+            date_time_match = re.search(r'to\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})', raw_text, re.IGNORECASE)
+            
+            # Fallback: if the "to" date is not found, try to find the "Date de signification"
+            if not date_time_match:
+                date_time_match = re.search(r'Date\s+de\s+signification:\s*(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})', raw_text, re.IGNORECASE)
+            
+            if date_time_match:
+                extracted_date = date_time_match.group(1)
+                extracted_time = date_time_match.group(2)
+            
+            # Log the raw text for debugging purposes
+            print(f"Raw OCR Text:\n{raw_text}")
+            
+            # --- END OCR TEXT PARSING LOGIC ---
+
+            return jsonify(
+                success=True,
+                ticket_number=ticket_number,
+                space=space_number,
+                date=extracted_date,
+                start_time=extracted_time,
+                raw_ocr_text=raw_text # Return this for debugging if needed
+            )
+
+        except Exception as e:
+            # Log any errors that occur during the process
+            print(f"OCR Error: {e}")
+            return jsonify(success=False, message=f"Error processing image: {str(e)}")
+
 if __name__ == '__main__':
-    import os
-
-port = int(os.environ.get("PORT", 5000))
-app.run(host="0.0.0.0", port=port)
-
+    # Your existing code for running the Flask app
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True) # Enabled debug mode for easier development

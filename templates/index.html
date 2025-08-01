@@ -3,92 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <title>Mobicité Receipt Generator</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-        }
-        label {
-            display: block;
-            margin-top: 10px;
-        }
-        input[type="text"], input[type="date"], input[type="time"] {
-            width: 300px;
-            padding: 5px;
-        }
-        .form-container {
-            margin-top: 20px;
-            padding: 10px 20px;
-        }
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .profile-badge {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .circle-initials {
-            background-color: #007bff;
-            color: white;
-            border-radius: 50%;
-            width: 36px;
-            height: 36px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-weight: bold;
-            font-size: 14px;
-        }
-        .profile-actions {
-            display: flex;
-            gap: 10px;
-        }
-        .profile-actions a {
-            text-decoration: none;
-            color: #007bff;
-        }
-    </style>
-</head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    </head>
 <body>
-    <div class="top-bar">
-        <h1>Mobicité Receipt Generator</h1>
-        {% if profile and 'first_name' in profile and 'last_name' in profile %}
-        <div class="profile-badge">
-            <div class="circle-initials">
-                {{ profile['first_name'][0] }}{{ profile['last_name'][0] }}
+    <div class="container">
+        <div class="top-bar">
+            <h1>Mobicité Receipt Generator</h1>
+            {% if profile and 'first_name' in profile and 'last_name' in profile %}
+            <div class="profile-badge">
+                <div class="circle-initials">
+                    {{ profile['first_name'][0] }}{{ profile['last_name'][0] }}
+                </div>
+                <div class="profile-actions">
+                    <span>{{ profile['first_name'] }} {{ profile['last_name'] }}</span>
+                    <a href="{{ url_for('edit_profile') }}">Edit Profile</a>
+                    <a href="{{ url_for('signout') }}">Sign Out</a>
+                </div>
             </div>
-            <div class="profile-actions">
-                <span>{{ profile['first_name'] }} {{ profile['last_name'] }}</span>
-                <a href="{{ url_for('edit_profile') }}">Edit Profile</a>
-                <a href="{{ url_for('signout') }}">Sign Out</a>
-            </div>
+            {% endif %}
         </div>
+
+        {% if profile %}
+        <div class="form-container">
+            <form action="/generate" method="POST" id="receiptForm">
+                <div class="camera-upload-section">
+                    <label for="ticket_image">Or snap a picture of your ticket:</label>
+                    <input type="file" id="ticket_image" name="ticket_image" accept="image/*" capture="environment">
+                    <button type="button" id="scanTicketBtn">Scan Ticket with Camera</button>
+                    <div id="ocr_results" style="margin-top: 15px; font-style: italic; color: #666;"></div>
+                </div>
+                <label for="ticket_number">Ticket Number (9 digits):</label>
+                <input type="text" id="ticket_number" name="ticket_number" required>
+
+                <label for="space">Space Number:</label>
+                <input type="text" id="space" name="space" required>
+
+                <label for="date">Date:</label>
+                <input type="date" id="date" name="date" required>
+
+                <label for="start_time">Start Time:</label>
+                <input type="time" id="start_time" name="start_time" required>
+
+                <button type="submit">Generate PDF</button>
+            </form>
+        </div>
+        {% else %}
+        <p class="not-signed-in-message">You are not signed in. <a href="{{ url_for('signin') }}"><b>Click here to sign in</b></a>.</p>
         {% endif %}
     </div>
 
-    {% if profile %}
-    <div class="form-container">
-        <form action="/generate" method="POST">
-            <label for="ticket_number">Ticket Number (9 digits):</label>
-            <input type="text" id="ticket_number" name="ticket_number" required>
+    <script>
+        document.getElementById('scanTicketBtn').addEventListener('click', function() {
+            // Programmatically click the hidden file input to open camera/file picker
+            document.getElementById('ticket_image').click();
+        });
 
-            <label for="space">Space Number:</label>
-            <input type="text" id="space" name="space" required>
+        document.getElementById('ticket_image').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const formData = new FormData();
+                formData.append('ticket_image', file); // Append the selected image file
 
-            <label for="date">Date:</label>
-            <input type="date" id="date" name="date" required>
+                // Show a loading message
+                document.getElementById('ocr_results').textContent = 'Scanning ticket... Please wait.';
 
-            <label for="start_time">Start Time:</label>
-            <input type="time" id="start_time" name="start_time" required>
-
-            <button type="submit">Generate PDF</button>
-        </form>
-    </div>
-    {% else %}
-    <p>You are not signed in. <a href="{{ url_for('signin') }}"><b>Click here to sign in</b></a>.</p>
-    {% endif %}
+                // Send the image to your Flask server for OCR processing
+                fetch('/scan-ticket', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json()) // Expect a JSON response from the server
+                .then(data => {
+                    if (data.success) {
+                        // Populate form fields with OCR'd data
+                        document.getElementById('ticket_number').value = data.ticket_number || '';
+                        document.getElementById('space').value = data.space || '';
+                        document.getElementById('date').value = data.date || '';
+                        document.getElementById('start_time').value = data.start_time || '';
+                        document.getElementById('ocr_results').textContent = 'Ticket scanned successfully! Review and generate PDF.';
+                    } else {
+                        // Display error message
+                        document.getElementById('ocr_results').textContent = 'OCR failed: ' + (data.message || 'Could not extract information.');
+                        console.error('OCR Error:', data.message);
+                    }
+                })
+                .catch(error => {
+                    // Handle network or other fetch errors
+                    console.error('Fetch Error during OCR:', error);
+                    document.getElementById('ocr_results').textContent = 'Error during scan. Please try again.';
+                });
+            }
+        });
+    </script>
 </body>
 </html>
