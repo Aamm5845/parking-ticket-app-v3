@@ -7,10 +7,9 @@
 set -e
 
 # Install Tesseract OCR and its development headers using apt-get.
-# This must be done before pip installing pytesseract.
-apt-get update && apt-get install -y tesseract-ocr libtesseract-dev libleptonica-dev
+# This command is a more robust way to install Tesseract on Render.
+apt-get update -y && apt-get install -y tesseract-ocr libtesseract-dev libleptonica-dev
 
 # Install Python dependencies from requirements.txt.
 # This uses the virtual environment set up by Render.
 pip install -r requirements.txt
-
