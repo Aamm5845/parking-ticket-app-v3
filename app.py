@@ -9,21 +9,15 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
 import re
+from io import BytesIO
 
-# IMPORTANT: These are the new imports for OCR.
-try:
-    from PIL import Image
-    import pytesseract
-    # On some systems, you may need to explicitly set the path to your Tesseract executable.
-    # For example: pytesseract.pytesseract.tesseract_cmd = r'/usr/local/bin/tesseract'
-except ImportError:
-    Image = None
-    pytesseract = None
-    print("Warning: Pillow or pytesseract not found. OCR functionality will be disabled.")
-
+# NEW IMPORTS FOR GOOGLE CLOUD VISION
+from google.cloud import vision
+from google.oauth2 import service_account
+from google.api_core.client_options import ClientOptions
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'
+app.secret_key = os.environ.get('SECRET_KEY', 'your_secret_key_here')
 
 PROFILE_PATH = 'profile.json'
 TEMPLATE_PDF = 'static/base_template.pdf'
@@ -39,6 +33,24 @@ if os.path.exists(PROFILE_PATH):
             profiles = {}
 else:
     profiles = {}
+
+# Initialize Google Cloud Vision client with the service account key from an environment variable.
+try:
+    # Read the JSON credentials directly from the environment variable.
+    credentials_json = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS_JSON')
+    if credentials_json:
+        # Create credentials from the JSON content.
+        credentials = service_account.Credentials.from_service_account_info(json.loads(credentials_json))
+        client = vision.ImageAnnotatorClient(credentials=credentials)
+    else:
+        # Fallback if the environment variable is not set.
+        client = None
+        print("Warning: GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable is not set. OCR features will not work.")
+except Exception as e:
+    # If not authenticated, we will fail on OCR
+    client = None
+    print(f"Warning: Google Cloud Vision client could not be initialized. OCR features will not work. Error: {e}")
+
 
 # --- Existing Routes ---
 @app.route('/')
@@ -95,7 +107,6 @@ def signout():
 def generate():
     """
     Generates a PDF receipt based on form data.
-    This route's logic remains unchanged from your original code.
     """
     data = request.form
 
@@ -168,57 +179,52 @@ def generate():
     return send_file(FILLED_PDF, as_attachment=True)
 
 
-# --- NEW: Route for handling the OCR request ---
+# --- NEW: Route for handling the OCR request with Google Cloud Vision API ---
 @app.route('/scan-ticket', methods=['POST'])
 def scan_ticket():
     """
-    Handles an image upload, performs OCR to extract text, and returns a JSON response.
+    Handles an image upload, performs OCR using Google Cloud Vision, and returns a JSON response.
     """
-    # Check if OCR libraries are available
-    if not Image or not pytesseract:
-        return jsonify(success=False, message="OCR libraries are not installed on the server.")
-
-    # Check if a file was sent in the request
+    if not client:
+        return jsonify(success=False, message="Google Cloud Vision API client is not configured."), 500
+    
     if 'ticket_image' not in request.files:
-        return jsonify(success=False, message="No image file provided.")
+        print("Error: No image file provided.")
+        return jsonify(success=False, message="No image file provided."), 400
 
     file = request.files['ticket_image']
     if file.filename == '':
-        return jsonify(success=False, message="No file selected.")
+        print("Error: No file selected.")
+        return jsonify(success=False, message="No file selected."), 400
 
     if file:
         try:
-            # Open the image file from the request stream
-            image = Image.open(file.stream)
-            
-            # Perform OCR on the image to get raw text.
-            # Using 'eng+fra' for English and French language support.
-            raw_text = pytesseract.image_to_string(image, lang='eng+fra')
+            # Read the image content from the request stream
+            content = file.read()
+            image = vision.Image(content=content)
 
-            # --- OCR TEXT PARSING LOGIC (Updated based on your ticket image) ---
+            # Perform document text detection on the image
+            response = client.document_text_detection(image=image)
+            raw_text = response.full_text_annotation.text
+
+            # --- OCR TEXT PARSING LOGIC (You will need to customize this!) ---
             ticket_number = ""
             space_number = ""
             extracted_date = ""
             extracted_time = ""
 
             # 1. Capture the 9-digit ticket number with spaces and remove spaces
-            # Pattern: 3 digits, optional space, 3 digits, optional space, 3 digits
             ticket_match = re.search(r'\b(\d{3})\s*(\d{3})\s*(\d{3})\b', raw_text)
             if ticket_match:
-                # Combine the captured groups without spaces
                 ticket_number = ticket_match.group(1) + ticket_match.group(2) + ticket_match.group(3)
 
-            # 2. Capture the "PL" space number, which is more specific.
-            # This avoids picking up "PLATEAU".
+            # 2. Capture the "PL" space number
             space_match = re.search(r'(PL\d+)', raw_text, re.IGNORECASE)
             if space_match:
-                space_number = space_match.group(1).upper() # .upper() for consistency
+                space_number = space_match.group(1).upper()
 
             # 3. Capture the second date and time (the 'to' date)
-            # This is the updated, more robust regex to capture the 'to' date and time.
             date_time_match = re.search(r'to\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})', raw_text, re.IGNORECASE)
-            
-            # Fallback: if the "to" date is not found, try to find the "Date de signification"
             if not date_time_match:
                 date_time_match = re.search(r'Date\s+de\s+signification:\s*(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})', raw_text, re.IGNORECASE)
             
@@ -226,26 +232,22 @@ def scan_ticket():
                 extracted_date = date_time_match.group(1)
                 extracted_time = date_time_match.group(2)
             
-            # Log the raw text for debugging purposes
-            print(f"Raw OCR Text:\n{raw_text}")
-            
-            # --- END OCR TEXT PARSING LOGIC ---
+            print(f"Raw OCR Text from Google Cloud Vision:\n{raw_text}")
 
+            print("OCR successful. Returning JSON data.")
             return jsonify(
                 success=True,
                 ticket_number=ticket_number,
                 space=space_number,
                 date=extracted_date,
                 start_time=extracted_time,
-                raw_ocr_text=raw_text # Return this for debugging if needed
-            )
+                raw_ocr_text=raw_text
+            ), 200
 
         except Exception as e:
-            # Log any errors that occur during the process
-            print(f"OCR Error: {e}")
-            return jsonify(success=False, message=f"Error processing image: {str(e)}")
+            print(f"Google Cloud Vision API Error: {e}")
+            return jsonify(success=False, message=f"Error processing image with API: {str(e)}"), 500
 
 if __name__ == '__main__':
-    # Your existing code for running the Flask app
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True) # Enabled debug mode for easier development
+    app.run(host="0.0.0.0", port=port, debug=True)
