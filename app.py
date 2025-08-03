@@ -124,21 +124,21 @@ def generate():
     space_caps = ''.join([char.upper() if char.isalpha() else char for char in space_cleaned])
 
     # Create the initial datetime object from user input
-date_obj = datetime.strptime(data['date'] + ' ' + data['start_time'], '%Y-%m-%d %H:%M')
+    date_obj = datetime.strptime(data['date'] + ' ' + data['start_time'], '%Y-%m-%d %H:%M')
 
-# Adjust the start time by a random offset of 1-2 minutes
-offset_minutes = random.randint(1, 2)
-adjusted_date_obj = date_obj + timedelta(minutes=offset_minutes)
+    # Adjust the start time by a random offset of 1-2 minutes
+    offset_minutes = random.randint(1, 2)
+    adjusted_date_obj = date_obj + timedelta(minutes=offset_minutes)
 
-# Set the new start time
-start_time = adjusted_date_obj.strftime('%Y-%m-%d, %H:%M')
+    # Set the new start time
+    start_time = adjusted_date_obj.strftime('%Y-%m-%d, %H:%M')
 
-# Calculate the end time 10 minutes after the adjusted start time
-end_time = (adjusted_date_obj + timedelta(minutes=10)).strftime('%Y-%m-%d, %H:%M')
+    # Calculate the end time 10 minutes after the adjusted start time
+    end_time = (adjusted_date_obj + timedelta(minutes=10)).strftime('%Y-%m-%d, %H:%M')
 
-# Update all other timestamps with the new adjusted time
-date_line = f" {adjusted_date_obj.strftime('%a, %b %d, %Y at %I:%M %p')}"
-transaction_datetime = ' ' + adjusted_date_obj.strftime('%Y-%m-%d, %H:%M')
+    # Update all other timestamps with the new adjusted time
+    date_line = f" {adjusted_date_obj.strftime('%a, %b %d, %Y at %I:%M %p')}"
+    transaction_datetime = ' ' + adjusted_date_obj.strftime('%Y-%m-%d, %H:%M')
 
     values = {
         'Transaction number': transaction,
@@ -198,7 +198,7 @@ def scan_ticket():
     """
     if not client:
         return jsonify(success=False, message="Google Cloud Vision API client is not configured."), 500
-    
+
     if 'ticket_image' not in request.files:
         print("Error: No image file provided.")
         return jsonify(success=False, message="No image file provided."), 400
@@ -238,11 +238,11 @@ def scan_ticket():
             date_time_match = re.search(r'to\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})', raw_text, re.IGNORECASE)
             if not date_time_match:
                 date_time_match = re.search(r'Date\s+de\s+signification:\s*(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})', raw_text, re.IGNORECASE)
-            
+
             if date_time_match:
                 extracted_date = date_time_match.group(1)
                 extracted_time = date_time_match.group(2)
-            
+
             print(f"Raw OCR Text from Google Cloud Vision:\n{raw_text}")
 
             print("OCR successful. Returning JSON data.")
