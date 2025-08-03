@@ -1,143 +1,241 @@
-/* General Body Styles */
-body {
-    font-family: Arial, sans-serif;
+/* --- Google Font Import --- */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+/* --- CSS Variables for Easy Theming --- */
+:root {
+    --primary-color: #2196F3; /* A nice, vibrant blue */
+    --primary-dark: #1976D2;  /* A darker blue for hover effects */
+    --secondary-color: #F5F5F5; /* Light grey for secondary buttons */
+    --text-color: #212121;
+    --text-light: #757575;
+    --background-color: #ECEFF1; /* Light bluish-grey background */
+    --card-background: #FFFFFF;
+    --border-color: #E0E0E0;
+    --success-color: #4CAF50;
+    --error-color: #F44336;
+}
+
+/* --- General Reset & Body --- */
+* {
     margin: 0;
-    padding: 20px;
-    background-color: #f4f4f4; /* Light grey background */
-    color: #333; /* Darker text color */
+    padding: 0;
+    box-sizing: border-box;
 }
 
-/* Page Containers */
-.container {
-    max-width: 600px;
-    margin: 40px auto;
-    padding: 20px 30px;
-    background-color: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    overscroll-behavior: none;
 }
 
-/* Headings */
-h1 {
-    text-align: center;
-    margin-bottom: 30px;
-    color: #0056b3; /* A shade of blue */
+.app-container {
+    max-width: 450px; /* Max width for larger screens, looks like a phone */
+    min-height: 100vh;
+    margin: 0 auto;
+    background-color: var(--card-background);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
 }
 
-/* Labels for Forms */
-label {
-    display: block;
-    margin-top: 15px;
-    margin-bottom: 5px;
-    font-weight: bold;
-    color: #555;
-}
-
-/* Text and Email Input Fields */
-input[type="text"],
-input[type="email"],
-input[type="date"],
-input[type="time"] {
-    width: calc(100% - 18px); /* Account for padding */
-    padding: 10px;
-    margin-top: 5px;
-    font-size: 16px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    box-sizing: border-box; /* Include padding in width */
-}
-
-/* Buttons */
-button {
-    margin-top: 25px;
-    padding: 12px 25px;
-    font-size: 16px;
-    background-color: #007bff; /* Primary blue */
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-button:hover {
-    background-color: #0056b3; /* Darker blue on hover */
-}
-
-/* Specific Styles for index.html (Top Bar & Profile Badge) */
-.top-bar {
+/* --- App Header & Profile --- */
+.app-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 30px;
-}
-
-.profile-badge {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    background-color: #e9ecef; /* Light grey background for badge */
-    padding: 8px 15px;
-    border-radius: 25px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.circle-initials {
-    background-color: #28a745; /* Green for initials */
+    padding: 1rem;
+    background-color: var(--primary-color);
     color: white;
-    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.app-header h1 {
+    font-size: 1.5rem;
+}
+
+.profile-menu {
+    position: relative;
+}
+
+.profile-initials {
     width: 40px;
     height: 40px;
+    border-radius: 50%;
+    background-color: var(--primary-dark);
     display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    cursor: pointer;
+    border: 2px solid white;
+}
+
+.profile-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 50px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    width: 200px;
+    overflow: hidden;
+    z-index: 100;
+}
+
+.profile-menu:hover .profile-dropdown {
+    display: block;
+}
+
+.dropdown-header {
+    padding: 1rem;
+    font-weight: 500;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-color);
+}
+
+.profile-dropdown a {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    text-decoration: none;
+    color: var(--text-color);
+}
+.profile-dropdown a:hover {
+    background-color: #f5f5f5;
+}
+
+/* --- Main Content Area --- */
+.app-main {
+    flex-grow: 1;
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+
+/* --- Sign In Screen --- */
+.signin-container {
+    display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
-    font-weight: bold;
-    font-size: 16px;
-    flex-shrink: 0; /* Prevent shrinking */
-}
-
-.profile-actions {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap; /* Allow wrapping on smaller screens */
-}
-
-.profile-actions span {
-    font-weight: bold;
-    color: #0056b3;
-}
-
-.profile-actions a {
-    text-decoration: none;
-    color: #007bff;
-    font-size: 14px;
-    transition: color 0.3s ease;
-}
-
-.profile-actions a:hover {
-    color: #0056b3;
-}
-
-/* Link for "Back to Home" */
-.back-link {
-    display: inline-block;
-    margin-top: 20px;
-    color: #007bff;
-    text-decoration: none;
-    font-weight: bold;
-}
-
-.back-link:hover {
-    text-decoration: underline;
-}
-
-/* For the "Not signed in" message */
-.not-signed-in-message {
     text-align: center;
-    margin-top: 50px;
-    font-size: 1.1em;
+    height: 100%;
+}
+.signin-container .logo {
+    margin-bottom: 1rem;
+}
+.signin-container .logo .material-icons {
+    font-size: 4rem;
+    color: var(--primary-color);
+}
+.signin-container h1 {
+    font-size: 2rem;
+    color: var(--text-color);
+}
+.signin-container p {
+    font-size: 1rem;
+    color: var(--text-light);
+    margin-bottom: 2rem;
 }
 
-.not-signed-in-message b {
-    color: #dc3545; /* Red for emphasis */
+/* --- Action Card (When Signed In) --- */
+.action-card h2 {
+    font-size: 1.25rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.divider {
+    text-align: center;
+    margin: 1.5rem 0;
+    color: var(--text-light);
+    font-weight: 500;
+}
+
+/* --- General Button Styles --- */
+.btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 1rem;
+    font-size: 1rem;
+    font-weight: 500;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    text-decoration: none;
+}
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+.btn-secondary {
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+.btn-secondary:hover {
+    background-color: #e0e0e0;
+}
+
+/* --- Form Styles --- */
+form {
+    margin-top: 1.5rem;
+}
+form > p {
+    font-size: 1rem;
+    color: var(--text-light);
+    text-align: center;
+    margin-bottom: 1rem;
+}
+.input-group {
+    margin-bottom: 1rem;
+}
+.input-group label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+.input-group input {
+    width: 100%;
+    padding: 0.8rem;
+    font-size: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: #fafafa;
+}
+.input-group input:focus {
+    outline: 2px solid var(--primary-color);
+    border-color: transparent;
+}
+
+/* --- Hidden File Input --- */
+#ticket_image {
+    display: none;
+}
+
+/* --- OCR Status Message --- */
+.ocr-status {
+    display: none; /* Hidden by default */
+    text-align: center;
+    margin-top: 1.5rem;
+    padding: 0.8rem;
+    border-radius: 8px;
+    font-weight: 500;
+    background-color: #e3f2fd;
+    color: var(--primary-dark);
 }
