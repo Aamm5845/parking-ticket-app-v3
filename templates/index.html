@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mobicité</title>
+    <title>Tickety</title>
 
     <!-- Google Fonts and Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,7 +20,7 @@
         <!-- This top bar appears only when signed in -->
         {% if profile %}
         <header class="app-header">
-            <h1>Mobicité</h1>
+            <h1>Tickety</h1>
             {% if 'first_name' in profile and 'last_name' in profile %}
             <div class="profile-menu">
                 <div class="profile-initials">{{ profile['first_name'][0] }}{{ profile['last_name'][0] }}</div>
@@ -47,7 +47,6 @@
                 </div>
                 <div class="divider">OR</div>
 
-                <!-- The form action now points to our new Python route -->
                 <form action="{{ url_for('generate_and_get_link') }}" method="POST" id="receiptForm">
                     <p>Enter ticket details manually:</p>
 
@@ -70,22 +69,12 @@
 
                     <div id="ocr_results" class="ocr-status"></div>
 
-                    <!-- BUG FIX: This container holds all the action buttons -->
+                    <!-- This container holds the action buttons -->
                     <div id="form_actions">
                         <button type="submit" class="btn btn-primary" id="generateBtn">
                             <span class="material-icons">picture_as_pdf</span> Generate PDF
                         </button>
-                        
-                        <!-- BUG FIX: New Download button, hidden by default -->
-                        <a href="#" id="downloadBtn" class="btn btn-primary" style="display: none; margin-top: 1rem;" download="Tickety_Receipt.pdf">
-                            <span class="material-icons">download</span> Download PDF
-                        </a>
-
-                        <!-- BUG FIX: Continue button is now separate, hidden by default -->
-                        <a href="#" id="continueBtn" class="btn btn-success" style="display: none; margin-top: 1rem;"
-                            target="_blank">
-                            <span class="material-icons">open_in_new</span> Continue to Montreal Portal
-                        </a>
+                        <!-- The Continue button will be added here by JavaScript -->
                     </div>
                 </form>
             </div>
@@ -95,7 +84,7 @@
             <div class="signin-container">
                 <div class="logo">
                     <span class="material-icons">confirmation_number</span>
-                    <h1>Mobicité</h1>
+                    <h1>Tickety</h1>
                 </div>
                 <p>Your digital ticket manager.</p>
                 <a href="{{ url_for('signin') }}" class="btn btn-primary">Sign In to Continue</a>
@@ -112,13 +101,11 @@
 
     <!-- BUG FIX: The completely updated JavaScript to handle the new workflow -->
     <script>
-        // Only run this script if the form exists on the page (i.e., user is signed in)
         if (document.getElementById('receiptForm')) {
             const receiptForm = document.getElementById('receiptForm');
             const ocrStatus = document.getElementById('ocr_results');
             const generateBtn = document.getElementById('generateBtn');
-            const downloadBtn = document.getElementById('downloadBtn');
-            const continueBtn = document.getElementById('continueBtn');
+            const formActions = document.getElementById('form_actions');
 
             // --- OCR Scanning Logic (from previous steps) ---
             const scanTicketBtn = document.getElementById('scanTicketBtn');
@@ -158,14 +145,12 @@
                 }
             });
 
-            // --- New PDF Generation and Submission Logic ---
+            // --- New, More Reliable PDF Generation and Submission Logic ---
             receiptForm.addEventListener('submit', function(event) {
-                event.preventDefault(); // Stop the default form submission
+                event.preventDefault(); 
                 
                 ocrStatus.style.display = 'block';
                 ocrStatus.textContent = 'Generating PDF... Please wait.';
-                
-                // Disable the generate button to prevent multiple clicks
                 generateBtn.disabled = true;
 
                 const formData = new FormData(receiptForm);
@@ -177,29 +162,44 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        ocrStatus.textContent = '✅ Success! Please choose your next step.';
+                        ocrStatus.textContent = '✅ Success! PDF is downloading.';
                         
-                        // Hide the original generate button
+                        // --- Automatic Download ---
+                        const downloadLink = document.createElement('a');
+                        downloadLink.href = data.download_url;
+                        downloadLink.download = 'Tickety_Receipt.pdf';
+                        document.body.appendChild(downloadLink);
+                        downloadLink.click();
+                        document.body.removeChild(downloadLink);
+
+                        // --- Create and Show the Continue Button ---
                         generateBtn.style.display = 'none';
+                        
+                        // Remove any old continue button if it exists
+                        const oldContinueBtn = document.getElementById('continueBtn');
+                        if(oldContinueBtn) {
+                            oldContinueBtn.remove();
+                        }
 
-                        // Set the links for the new buttons
-                        downloadBtn.href = data.download_url;
+                        // Create the new button from scratch to ensure the link is correct
+                        const continueBtn = document.createElement('a');
                         continueBtn.href = data.montreal_url;
-
-                        // Show the new buttons
-                        downloadBtn.style.display = 'flex';
-                        continueBtn.style.display = 'flex';
+                        continueBtn.id = 'continueBtn';
+                        continueBtn.className = 'btn btn-success';
+                        continueBtn.style.marginTop = '1rem';
+                        continueBtn.target = '_blank';
+                        continueBtn.innerHTML = '<span class="material-icons">open_in_new</span> Continue to Montreal Portal';
+                        
+                        formActions.appendChild(continueBtn);
                         
                     } else {
                         ocrStatus.textContent = '❌ Error: ' + (data.message || 'Could not generate PDF.');
-                        // Re-enable the button if there was an error
                         generateBtn.disabled = false;
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
                     ocrStatus.textContent = '❌ An unexpected error occurred.';
-                    // Re-enable the button if there was an error
                     generateBtn.disabled = false;
                 });
             });
