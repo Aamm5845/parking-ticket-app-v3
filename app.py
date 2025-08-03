@@ -160,7 +160,8 @@ def generate_and_get_link():
         output.write(f)
     # --- End of PDF logic ---
 
-    montreal_url = f"https://services.montreal.ca/plaidoyer/rechercher/en?numeroConstat={ticket_number}"
+    # CORRECTED: Use 'statement' as the URL parameter based on your finding.
+    montreal_url = f"https://services.montreal.ca/plaidoyer/rechercher/en?statement={ticket_number}"
 
     return jsonify(
         success=True,
@@ -216,7 +217,6 @@ def scan_ticket():
             if space_match:
                 space_number = space_match.group(1).upper()
 
-            # MERGED: Improved logic to check for both "au" and "Date de signification"
             date_time_match_primary = re.search(r'au\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})', raw_text, re.IGNORECASE)
             date_time_match_secondary = re.search(r'Date\s+de\s+signification:\s*(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})', raw_text, re.IGNORECASE)
 
