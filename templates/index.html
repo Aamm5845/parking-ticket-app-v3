@@ -166,20 +166,21 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        ocrStatus.textContent = '✅ PDF Generated! Starting download...';
+                        ocrStatus.textContent = '✅ PDF Generated! Click below to continue.';
                         
-                        // This is a more robust way to trigger a download
-                        const link = document.createElement('a');
-                        link.href = data.download_url;
-                        // UPDATED: Changed the download name to Tickety
-                        link.download = 'Tickety_Receipt.pdf'; 
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-
                         // Set the link for the continue button and show it
                         continueBtn.href = data.montreal_url;
                         continueBtn.style.display = 'flex';
+
+                        // Automatically trigger the download after a short delay
+                        setTimeout(function() {
+                            const link = document.createElement('a');
+                            link.href = data.download_url;
+                            link.download = 'Tickety_Receipt.pdf'; 
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                        }, 500); // 500ms delay
                         
                     } else {
                         ocrStatus.textContent = '❌ Error: ' + (data.message || 'Could not generate PDF.');
