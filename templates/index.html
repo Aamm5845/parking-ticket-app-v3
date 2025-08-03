@@ -36,7 +36,7 @@
         </header>
         {% endif %}
 
-       <main class="app-main">
+        <main class="app-main">
             {% if profile %}
             <div class="action-card">
                 <h2>Add a Ticket</h2>
@@ -93,23 +93,31 @@
         </main>
     </div>
 
+    <div id="scanning_overlay" class="scanning-overlay">
+        <img src="{{ url_for('static', filename='Material wave loading.gif') }}" alt="Scanning...">
+        <p>Scanning ticket...</p>
+    </div>
+
     <script>
         // Only run the script if the user is signed in (the buttons exist)
         if (document.getElementById('scanTicketBtn')) {
-            document.getElementById('scanTicketBtn').addEventListener('click', function() {
-                // Programmatically click the hidden file input to open camera/file picker
-                document.getElementById('ticket_image').click();
+            const scanTicketBtn = document.getElementById('scanTicketBtn');
+            const ticketImageInput = document.getElementById('ticket_image');
+            const ocrStatus = document.getElementById('ocr_results');
+            const scanningOverlay = document.getElementById('scanning_overlay');
+
+            scanTicketBtn.addEventListener('click', function() {
+                ticketImageInput.click();
             });
 
-            document.getElementById('ticket_image').addEventListener('change', function(event) {
+            ticketImageInput.addEventListener('change', function(event) {
                 const file = event.target.files[0];
                 if (file) {
                     const formData = new FormData();
                     formData.append('ticket_image', file);
 
-                    const ocrStatus = document.getElementById('ocr_results');
-                    ocrStatus.textContent = 'Scanning ticket... Please wait.';
-                    ocrStatus.style.display = 'block'; // Make it visible
+                    ocrStatus.style.display = 'none'; // Hide previous OCR results
+                    scanningOverlay.style.display = 'flex'; // Show the scanning overlay
 
                     fetch('/scan-ticket', {
                         method: 'POST',
@@ -117,6 +125,9 @@
                     })
                     .then(response => response.json())
                     .then(data => {
+                        scanningOverlay.style.display = 'none'; // Hide the overlay after response
+                        ocrStatus.style.display = 'block'; // Show the result area
+
                         if (data.success) {
                             document.getElementById('ticket_number').value = data.ticket_number || '';
                             document.getElementById('space').value = data.space || '';
@@ -124,13 +135,15 @@
                             document.getElementById('start_time').value = data.start_time || '';
                             ocrStatus.textContent = '✅ Ticket scanned successfully! Please review.';
                         } else {
-                            ocrStatus.textContent = ' OCR failed: ' + (data.message || 'Could not extract information.');
+                            ocrStatus.textContent = '❌ OCR failed: ' + (data.message || 'Could not extract information.');
                             console.error('OCR Error:', data.message);
                         }
                     })
                     .catch(error => {
-                        console.error('Fetch Error during OCR:', error);
+                        scanningOverlay.style.display = 'none'; // Hide overlay on error too
+                        ocrStatus.style.display = 'block';
                         ocrStatus.textContent = 'Error during scan. Please try again.';
+                        console.error('Fetch Error during OCR:', error);
                     });
                 }
             });
