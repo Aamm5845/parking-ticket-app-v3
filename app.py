@@ -123,11 +123,22 @@ def generate():
     space_cleaned = re.sub(r'[^A-Za-z0-9]', '', space_raw)
     space_caps = ''.join([char.upper() if char.isalpha() else char for char in space_cleaned])
 
-    date_obj = datetime.strptime(data['date'] + ' ' + data['start_time'], '%Y-%m-%d %H:%M')
-    start_time = date_obj.strftime('%Y-%m-%d, %H:%M')
-    end_time = (date_obj + timedelta(minutes=random.randint(1, 2))).strftime('%Y-%m-%d, %H:%M')
-    date_line = f" {date_obj.strftime('%a, %b %d, %Y at %I:%M %p')}"
-    transaction_datetime = ' ' + date_obj.strftime('%Y-%m-%d, %H:%M')
+    # Create the initial datetime object from user input
+date_obj = datetime.strptime(data['date'] + ' ' + data['start_time'], '%Y-%m-%d %H:%M')
+
+# Adjust the start time by a random offset of 1-2 minutes
+offset_minutes = random.randint(1, 2)
+adjusted_date_obj = date_obj + timedelta(minutes=offset_minutes)
+
+# Set the new start time
+start_time = adjusted_date_obj.strftime('%Y-%m-%d, %H:%M')
+
+# Calculate the end time 10 minutes after the adjusted start time
+end_time = (adjusted_date_obj + timedelta(minutes=10)).strftime('%Y-%m-%d, %H:%M')
+
+# Update all other timestamps with the new adjusted time
+date_line = f" {adjusted_date_obj.strftime('%a, %b %d, %Y at %I:%M %p')}"
+transaction_datetime = ' ' + adjusted_date_obj.strftime('%Y-%m-%d, %H:%M')
 
     values = {
         'Transaction number': transaction,
