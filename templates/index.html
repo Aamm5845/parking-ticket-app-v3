@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mobicité</title>
+    <!-- UPDATED: Changed the title to Tickety -->
+    <title>Tickety</title>
     
+    <!-- Google Fonts and Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
@@ -14,22 +16,18 @@
 </head>
 <body>
     <div class="app-container">
+        <!-- This top bar appears only when signed in -->
         {% if profile %}
         <header class="app-header">
-            <h1>Mobicité</h1>
+            <!-- UPDATED: Changed the header name to Tickety -->
+            <h1>Tickety</h1>
             {% if 'first_name' in profile and 'last_name' in profile %}
             <div class="profile-menu">
-                <div class="profile-initials">
-                    {{ profile['first_name'][0] }}{{ profile['last_name'][0] }}
-                </div>
+                <div class="profile-initials">{{ profile['first_name'][0] }}{{ profile['last_name'][0] }}</div>
                 <div class="profile-dropdown">
                     <div class="dropdown-header">{{ profile['first_name'] }} {{ profile['last_name'] }}</div>
-                    <a href="{{ url_for('edit_profile') }}">
-                        <span class="material-icons">edit</span> Edit Profile
-                    </a>
-                    <a href="{{ url_for('signout') }}">
-                        <span class="material-icons">logout</span> Sign Out
-                    </a>
+                    <a href="{{ url_for('edit_profile') }}"><span class="material-icons">edit</span> Edit Profile</a>
+                    <a href="{{ url_for('signout') }}"><span class="material-icons">logout</span> Sign Out</a>
                 </div>
             </div>
             {% endif %}
@@ -38,6 +36,7 @@
 
         <main class="app-main">
             {% if profile %}
+            <!-- Main content when user is signed IN -->
             <div class="action-card">
                 <h2>Add a Ticket</h2>
                 <div class="action-buttons">
@@ -46,27 +45,24 @@
                     </button>
                     <input type="file" id="ticket_image" name="ticket_image" accept="image/*" capture="environment">
                 </div>
-
                 <div class="divider">OR</div>
                 
-                <form action="/generate" method="POST" id="receiptForm">
+                <!-- The form action now points to our new Python route -->
+                <form action="{{ url_for('generate_and_get_link') }}" method="POST" id="receiptForm">
                     <p>Enter ticket details manually:</p>
                     
                     <div class="input-group">
                         <label for="ticket_number">Ticket Number</label>
                         <input type="text" id="ticket_number" name="ticket_number" required placeholder="e.g., 123456789">
                     </div>
-
                     <div class="input-group">
                         <label for="space">Space Number</label>
                         <input type="text" id="space" name="space" required placeholder="e.g., P-101">
                     </div>
-
                     <div class="input-group">
                         <label for="date">Date</label>
                         <input type="date" id="date" name="date" required>
                     </div>
-
                     <div class="input-group">
                         <label for="start_time">Start Time</label>
                         <input type="time" id="start_time" name="start_time" required>
@@ -74,17 +70,24 @@
                     
                     <div id="ocr_results" class="ocr-status"></div>
 
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary" id="generateBtn">
                         <span class="material-icons">picture_as_pdf</span> Generate PDF
                     </button>
+
+                    <!-- This button is hidden by default and will be shown after PDF generation -->
+                    <a href="#" id="continueBtn" class="btn btn-success" style="display: none; margin-top: 1rem;" target="_blank">
+                        <span class="material-icons">open_in_new</span> Continue to Montreal Portal
+                    </a>
                 </form>
             </div>
             
             {% else %}
+            <!-- Welcome screen when user is NOT signed in -->
             <div class="signin-container">
                 <div class="logo">
                     <span class="material-icons">confirmation_number</span>
-                    <h1>Mobicité</h1>
+                    <!-- UPDATED: Changed the logo name to Tickety -->
+                    <h1>Tickety</h1>
                 </div>
                 <p>Your digital ticket manager.</p>
                 <a href="{{ url_for('signin') }}" class="btn btn-primary">Sign In to Continue</a>
@@ -93,17 +96,24 @@
         </main>
     </div>
 
+    <!-- The Scanning Overlay -->
     <div id="scanning_overlay" class="scanning-overlay">
         <img src="{{ url_for('static', filename='Material wave loading.gif') }}" alt="Scanning...">
         <p>Scanning ticket...</p>
     </div>
 
+    <!-- The completely updated JavaScript to handle the new workflow -->
     <script>
-        // Only run the script if the user is signed in (the buttons exist)
-        if (document.getElementById('scanTicketBtn')) {
+        // Only run this script if the form exists on the page (i.e., user is signed in)
+        if (document.getElementById('receiptForm')) {
+            const receiptForm = document.getElementById('receiptForm');
+            const ocrStatus = document.getElementById('ocr_results');
+            const generateBtn = document.getElementById('generateBtn');
+            const continueBtn = document.getElementById('continueBtn');
+
+            // --- OCR Scanning Logic (from previous steps) ---
             const scanTicketBtn = document.getElementById('scanTicketBtn');
             const ticketImageInput = document.getElementById('ticket_image');
-            const ocrStatus = document.getElementById('ocr_results');
             const scanningOverlay = document.getElementById('scanning_overlay');
 
             scanTicketBtn.addEventListener('click', function() {
@@ -115,19 +125,13 @@
                 if (file) {
                     const formData = new FormData();
                     formData.append('ticket_image', file);
-
-                    ocrStatus.style.display = 'none'; // Hide previous OCR results
-                    scanningOverlay.style.display = 'flex'; // Show the scanning overlay
-
-                    fetch('/scan-ticket', {
-                        method: 'POST',
-                        body: formData
-                    })
+                    ocrStatus.style.display = 'none';
+                    scanningOverlay.style.display = 'flex';
+                    fetch("{{ url_for('scan_ticket') }}", { method: 'POST', body: formData })
                     .then(response => response.json())
                     .then(data => {
-                        scanningOverlay.style.display = 'none'; // Hide the overlay after response
-                        ocrStatus.style.display = 'block'; // Show the result area
-
+                        scanningOverlay.style.display = 'none';
+                        ocrStatus.style.display = 'block';
                         if (data.success) {
                             document.getElementById('ticket_number').value = data.ticket_number || '';
                             document.getElementById('space').value = data.space || '';
@@ -136,16 +140,55 @@
                             ocrStatus.textContent = '✅ Ticket scanned successfully! Please review.';
                         } else {
                             ocrStatus.textContent = '❌ OCR failed: ' + (data.message || 'Could not extract information.');
-                            console.error('OCR Error:', data.message);
                         }
-                    })
-                    .catch(error => {
-                        scanningOverlay.style.display = 'none'; // Hide overlay on error too
+                    }).catch(error => {
+                        scanningOverlay.style.display = 'none';
                         ocrStatus.style.display = 'block';
                         ocrStatus.textContent = 'Error during scan. Please try again.';
-                        console.error('Fetch Error during OCR:', error);
                     });
                 }
+            });
+
+            // --- New PDF Generation and Submission Logic ---
+            receiptForm.addEventListener('submit', function(event) {
+                event.preventDefault(); // Stop the default form submission
+                
+                ocrStatus.style.display = 'block';
+                ocrStatus.textContent = 'Generating PDF... Please wait.';
+                continueBtn.style.display = 'none'; // Hide continue button during generation
+
+                const formData = new FormData(receiptForm);
+
+                fetch(receiptForm.action, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        ocrStatus.textContent = '✅ PDF Generated! Starting download...';
+                        
+                        // This is a more robust way to trigger a download
+                        const link = document.createElement('a');
+                        link.href = data.download_url;
+                        // UPDATED: Changed the download name to Tickety
+                        link.download = 'Tickety_Receipt.pdf'; 
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+
+                        // Set the link for the continue button and show it
+                        continueBtn.href = data.montreal_url;
+                        continueBtn.style.display = 'flex';
+                        
+                    } else {
+                        ocrStatus.textContent = '❌ Error: ' + (data.message || 'Could not generate PDF.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    ocrStatus.textContent = '❌ An unexpected error occurred.';
+                });
             });
         }
     </script>
