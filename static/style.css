@@ -1,19 +1,17 @@
 /* --- Google Font Import --- */
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 
-/* --- NEW: Colorful, Classic & Modern Theme Variables --- */
+/* --- Colorful, Classic & Modern Theme Variables --- */
 :root {
-    /* A beautiful, deep blue to vibrant purple gradient */
     --primary-gradient: linear-gradient(135deg, #4a00e0 0%, #8e2de2 100%);
-    --primary-accent-color: #6a11cb; /* A color from the middle of the gradient */
-    
-    --secondary-color: #F5F5F5; /* Light grey for secondary buttons */
+    --primary-accent-color: #6a11cb;
+    --secondary-color: #F5F5F5;
     --text-color: #212121;
     --text-light: #757575;
-    --background-color: #f4f7f6; /* A slightly softer background */
+    --background-color: #f4f7f6;
     --card-background: #FFFFFF;
     --border-color: #E0E0E0;
-    --success-color: #00C853; /* A more vibrant green */
+    --success-color: #00C853;
     --error-color: #F44336;
 }
 
@@ -38,35 +36,34 @@ body {
     background-color: var(--card-background);
     display: flex;
     flex-direction: column;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1); /* A slightly stronger shadow for depth */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
 }
 
 /* --- App Header & Profile --- */
 .app-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.5rem;
-    /* UPDATED: Using the new gradient */
+    align-items: center; /* Vertically align items */
+    padding: 0.75rem 1rem; /* Adjusted padding */
     background-image: var(--primary-gradient);
     color: white;
     flex-shrink: 0;
 }
 
-.app-header h1 {
-    font-size: 1.5rem;
-    font-weight: 500;
+/* CORRECTED: Logo is now larger and has proper spacing */
+.header-logo {
+    height: 40px; /* Increased height */
+    width: auto;
 }
 
 .profile-menu {
     position: relative;
+    margin-left: auto; /* This pushes the profile icon to the far right */
 }
 
 .profile-initials {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    /* UPDATED: Using a darker shade from the gradient */
     background-color: rgba(0,0,0,0.2);
     display: flex;
     align-items: center;
@@ -129,20 +126,18 @@ body {
     text-align: center;
     height: 100%;
 }
-.signin-container .logo .material-icons {
-    font-size: 4rem;
-    /* UPDATED: Using the gradient as text color */
-    background: var(--primary-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+
+/* CORRECTED: Sign-in logo styles */
+.signin-logo {
+    max-width: 220px;
+    height: auto;
+    margin-bottom: 0.5rem;
 }
-.signin-container h1 {
-    font-size: 2.2rem;
-    color: var(--text-color);
-}
+
 .signin-container p {
     font-size: 1rem;
     color: var(--text-light);
+    margin-top: 0.5rem;
     margin-bottom: 2.5rem;
 }
 
@@ -179,7 +174,7 @@ body {
     font-size: 1rem;
     font-weight: 500;
     border: none;
-    border-radius: 12px; /* Slightly more rounded for a modern feel */
+    border-radius: 12px;
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     text-decoration: none;
@@ -189,7 +184,6 @@ body {
     box-shadow: 0 4px 10px rgba(0,0,0,0.15);
 }
 .btn-primary {
-    /* UPDATED: Using the new gradient */
     background-image: var(--primary-gradient);
     color: white;
 }
@@ -251,7 +245,7 @@ form > p {
 
 /* --- OCR Status Message --- */
 .ocr-status {
-    display: none; /* Hidden by default */
+    display: none;
     text-align: center;
     margin-top: 1.5rem;
     padding: 0.8rem;
@@ -286,15 +280,4 @@ form > p {
     color: white;
     font-size: 1.2rem;
     font-weight: 500;
-}
-/* --- NEW: Logo Image Styles --- */
-.header-logo {
-  height: 36px; /* Controls the height of the logo in the top bar */
-  width: auto;
-}
-
-.signin-logo {
-  max-width: 220px; /* Controls the size of the logo on the sign-in screen */
-  height: auto;
-  margin-bottom: 0.5rem; /* Reduced margin for better balance */
 }
