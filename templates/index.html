@@ -38,7 +38,8 @@
                     <input type="file" id="ticket_image" name="ticket_image" accept="image/*" capture="environment">
                 </div>
                 <div class="divider">OR</div>
-                <form action="{{ url_for('generate_and_get_link') }}" method="POST" id="receiptForm">
+                
+                <form action="{{ url_for('generate_pdf') }}" method="POST" id="receiptForm">
                     <p>Enter ticket details manually:</p>
                     <div class="input-group">
                         <label for="ticket_number">Ticket Number</label>
@@ -57,9 +58,13 @@
                         <input type="time" id="start_time" name="start_time" required>
                     </div>
                     <div id="ocr_results" class="ocr-status"></div>
-                    <div id="form_actions">
+                    
+                    <div class="form-actions-group">
                         <button type="submit" class="btn btn-primary" id="generateBtn">
                             <span class="material-icons">picture_as_pdf</span> Generate PDF
+                        </button>
+                        <button type="button" class="btn btn-success" id="fightBtn">
+                            <span class="material-icons">gavel</span> Fight Ticket
                         </button>
                     </div>
                 </form>
@@ -70,7 +75,7 @@
                     <img src="{{ url_for('static', filename='logo.png') }}" alt="Tickety Logo" class="signin-logo">
                 </div>
                 <p>Your digital ticket manager.</p>
-                <a href="{{ url_for('login') }}" class="btn btn-primary">Log In to Continue</a>
+                <a href="{{ url_for('login') }}" class="btn btn-primary">Log In</a>
                 <p class="auth-switch" style="margin-top:1rem;">Don't have an account? <a href="{{ url_for('signup') }}">Sign Up</a></p>
             </div>
             {% endif %}
@@ -82,13 +87,12 @@
     </div>
     <script>
         if (document.getElementById('receiptForm')) {
-            const receiptForm = document.getElementById('receiptForm');
-            const ocrStatus = document.getElementById('ocr_results');
-            const generateBtn = document.getElementById('generateBtn');
-            const formActions = document.getElementById('form_actions');
             const scanTicketBtn = document.getElementById('scanTicketBtn');
             const ticketImageInput = document.getElementById('ticket_image');
             const scanningOverlay = document.getElementById('scanning_overlay');
+            const ocrStatus = document.getElementById('ocr_results');
+            const fightBtn = document.getElementById('fightBtn');
+            const ticketNumberInput = document.getElementById('ticket_number');
 
             scanTicketBtn.addEventListener('click', () => ticketImageInput.click());
 
@@ -121,29 +125,15 @@
                 }
             });
 
-            receiptForm.addEventListener('submit', event => {
-                event.preventDefault(); 
-                ocrStatus.style.display = 'block';
-                ocrStatus.textContent = 'Generating PDF...';
-                generateBtn.disabled = true;
-
-                const formData = new FormData(receiptForm);
-
-                fetch(receiptForm.action, { method: 'POST', body: formData })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        // On success, redirect to the new plea helper page
-                        window.location.href = data.plea_helper_url;
-                    } else {
-                        ocrStatus.textContent = '❌ Error: ' + (data.message || 'Could not generate PDF.');
-                        generateBtn.disabled = false;
-                    }
-                })
-                .catch(err => {
-                    ocrStatus.textContent = '❌ An unexpected error occurred.';
-                    generateBtn.disabled = false;
-                });
+            // Simple JavaScript to go to the Plea Helper page
+            fightBtn.addEventListener('click', () => {
+                const ticketNumber = ticketNumberInput.value;
+                if (ticketNumber && ticketNumber.length === 9) {
+                    // Go to the plea helper page with the ticket number
+                    window.location.href = `/plea-helper?ticket_number=${ticketNumber}`;
+                } else {
+                    alert('Please enter a valid 9-digit ticket number first.');
+                }
             });
         }
     </script>
@@ -156,5 +146,6 @@
     </script>
 </body>
 </html>
+
 
 
