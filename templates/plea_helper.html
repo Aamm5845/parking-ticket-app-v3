@@ -11,80 +11,85 @@
     <div class="app-container">
         <header class="app-header">
              <a href="{{ url_for('index') }}" class="back-button"><span class="material-icons">arrow_back</span></a>
-             <h1 style="margin-left: 1rem;">Plea Helper</h1>
+             <h1 style="margin-left: 1rem;">Fight Ticket</h1>
         </header>
         <main class="app-main">
             <div class="action-card">
-                <h2>Copy Your Information</h2>
-                <p class="helper-subtitle">Tap 'Copy' then paste into the form on the Montreal portal.</p>
+                <h2>Step 1: Copy Your Info</h2>
+                <p class="helper-subtitle">Tap 'Copy' then paste into the form on the city's portal.</p>
 
-                <!-- Profile Information -->
+                <div class="copy-group">
+                    <label>Ticket Number</label>
+                    <div class="copy-item">
+                        <input type="text" value="{{ ticket_number }}" readonly id="copy-ticket_number">
+                        <button class="copy-btn" data-target="copy-ticket_number"><span class="material-icons">content_copy</span> Copy</button>
+                    </div>
+                </div>
+                <div class="divider"></div>
+                
                 <div class="copy-group">
                     <label>First Name</label>
                     <div class="copy-item">
-                        <input type="text" value="{{ profile.first_name }}" readonly>
-                        <button class="copy-btn"><span class="material-icons">content_copy</span> Copy</button>
+                        <input type="text" value="{{ profile.first_name }}" readonly id="copy-first_name">
+                        <button class="copy-btn" data-target="copy-first_name"><span class="material-icons">content_copy</span> Copy</button>
                     </div>
                 </div>
                 <div class="copy-group">
                     <label>Last Name</label>
                     <div class="copy-item">
-                        <input type="text" value="{{ profile.last_name }}" readonly>
-                        <button class="copy-btn"><span class="material-icons">content_copy</span> Copy</button>
+                        <input type="text" value="{{ profile.last_name }}" readonly id="copy-last_name">
+                        <button class="copy-btn" data-target="copy-last_name"><span class="material-icons">content_copy</span> Copy</button>
                     </div>
                 </div>
                 <div class="copy-group">
                     <label>Driver's License</label>
                     <div class="copy-item">
-                        <input type="text" value="{{ profile.license }}" readonly>
-                        <button class="copy-btn"><span class="material-icons">content_copy</span> Copy</button>
+                        <input type="text" value="{{ profile.license }}" readonly id="copy-license">
+                        <button class="copy-btn" data-target="copy-license"><span class="material-icons">content_copy</span> Copy</button>
                     </div>
                 </div>
                 <div class="copy-group">
                     <label>Address</label>
                     <div class="copy-item">
-                        <input type="text" value="{{ profile.address }}" readonly>
-                        <button class="copy-btn"><span class="material-icons">content_copy</span> Copy</button>
+                        <input type="text" value="{{ profile.address }}" readonly id="copy-address">
+                        <button class="copy-btn" data-target="copy-address"><span class="material-icons">content_copy</span> Copy</button>
                     </div>
                 </div>
                 <div class="copy-group">
                     <label>City</label>
                     <div class="copy-item">
-                        <input type="text" value="{{ profile.city }}" readonly>
-                        <button class="copy-btn"><span class="material-icons">content_copy</span> Copy</button>
+                        <input type="text" value="{{ profile.city }}" readonly id="copy-city">
+                        <button class="copy-btn" data-target="copy-city"><span class="material-icons">content_copy</span> Copy</button>
                     </div>
                 </div>
                 <div class="copy-group">
                     <label>Postal Code</label>
                     <div class="copy-item">
-                        <input type="text" value="{{ profile.postal_code }}" readonly>
-                        <button class="copy-btn"><span class="material-icons">content_copy</span> Copy</button>
+                        <input type="text" value="{{ profile.postal_code }}" readonly id="copy-postal_code">
+                        <button class="copy-btn" data-target="copy-postal_code"><span class="material-icons">content_copy</span> Copy</button>
                     </div>
                 </div>
                 <div class="copy-group">
                     <label>Email</label>
                     <div class="copy-item">
-                        <input type="text" value="{{ profile.email }}" readonly>
-                        <button class="copy-btn"><span class="material-icons">content_copy</span> Copy</button>
+                        <input type="text" value="{{ profile.email }}" readonly id="copy-email">
+                        <button class="copy-btn" data-target="copy-email"><span class="material-icons">content_copy</span> Copy</button>
                     </div>
                 </div>
 
                 <div class="divider"></div>
 
-                <!-- Not Guilty Plea Section -->
-                <form method="POST">
-                    <h2>Not Guilty Plea Explanation</h2>
-                    <div class="copy-group">
-                        <textarea name="plea_text" placeholder="Explain why you are pleading not guilty...">{{ plea_text or '' }}</textarea>
-                        <div class="copy-item">
-                             <button type="button" class="copy-btn textarea-copy-btn"><span class="material-icons">content_copy</span> Copy Explanation</button>
-                        </div>
+                <h2>Step 2: Copy Your Plea</h2>
+                <div class="copy-group">
+                    <textarea readonly id="copy-plea_text">{{ plea_text }}</textarea>
+                    <div class="copy-item">
+                         <button type="button" class="copy-btn textarea-copy-btn" data-target="copy-plea_text"><span class="material-icons">content_copy</span> Copy Explanation</button>
                     </div>
-                    <button type="submit" class="btn btn-secondary">Save Explanation</button>
-                </form>
+                </div>
 
                 <div class="divider"></div>
 
+                <h2>Step 3: Submit on Portal</h2>
                 <a href="{{ montreal_url }}" target="_blank" class="btn btn-success">
                     <span class="material-icons">open_in_new</span> Open Montreal Portal
                 </a>
@@ -97,17 +102,14 @@
         document.querySelectorAll('.copy-btn').forEach(button => {
             button.addEventListener('click', (e) => {
                 e.preventDefault();
-                let input;
-                // Check if it's the button for the textarea
-                if (button.classList.contains('textarea-copy-btn')) {
-                    input = button.closest('.copy-group').querySelector('textarea');
-                } else {
-                    input = button.previousElementSibling;
-                }
+                const targetId = button.dataset.target;
+                const input = document.getElementById(targetId);
                 
                 input.select();
+                // For mobile
+                input.setSelectionRange(0, 99999);
+                
                 try {
-                    // Use the modern clipboard API
                     navigator.clipboard.writeText(input.value);
                     const originalText = button.innerHTML;
                     button.innerHTML = '<span class="material-icons">done</span> Copied!';
@@ -116,20 +118,11 @@
                     }, 2000);
                 } catch (err) {
                     console.error('Failed to copy text: ', err);
-                    // Fallback for older browsers
-                    try {
-                        document.execCommand('copy');
-                        const originalText = button.innerHTML;
-                        button.innerHTML = '<span class="material-icons">done</span> Copied!';
-                        setTimeout(() => {
-                            button.innerHTML = originalText;
-                        }, 2000);
-                    } catch (err) {
-                        alert('Failed to copy text.');
-                    }
                 }
             });
         });
     </script>
 </body>
 </html>
+
+
