@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -20,20 +20,13 @@
                     <div class="step-header">
                         <div class="step-number">1</div>
                         <div class="step-title">
-                            <h2>Copy Your Information</h2>
-                            <p>Copy each piece of info for the portal.</p>
+                            <h2>Copy Required Info</h2>
                         </div>
                         <div class="step-status"><span class="material-icons check-icon">check_circle</span></div>
                     </div>
                     <div class="step-content">
                         <div class="copy-group"><label for="copy-ticket_number">Ticket Number</label><div class="input-wrapper"><input type="text" value="{{ ticket_number }}" readonly id="copy-ticket_number"><button class="copy-btn" data-target="copy-ticket_number"><span class="material-icons">content_copy</span></button></div></div>
-                        <div class="copy-group"><label for="copy-first_name">First Name</label><div class="input-wrapper"><input type="text" value="{{ profile.first_name }}" readonly id="copy-first_name"><button class="copy-btn" data-target="copy-first_name"><span class="material-icons">content_copy</span></button></div></div>
-                        <div class="copy-group"><label for="copy-last_name">Last Name</label><div class="input-wrapper"><input type="text" value="{{ profile.last_name }}" readonly id="copy-last_name"><button class="copy-btn" data-target="copy-last_name"><span class="material-icons">content_copy</span></button></div></div>
                         <div class="copy-group"><label for="copy-license">Driver's License</label><div class="input-wrapper"><input type="text" value="{{ profile.license }}" readonly id="copy-license"><button class="copy-btn" data-target="copy-license"><span class="material-icons">content_copy</span></button></div></div>
-                        <div class="copy-group"><label for="copy-address">Address</label><div class="input-wrapper"><input type="text" value="{{ profile.address }}" readonly id="copy-address"><button class="copy-btn" data-target="copy-address"><span class="material-icons">content_copy</span></button></div></div>
-                        <div class="copy-group"><label for="copy-city">City</label><div class="input-wrapper"><input type="text" value="{{ profile.city }}" readonly id="copy-city"><button class="copy-btn" data-target="copy-city"><span class="material-icons">content_copy</span></button></div></div>
-                        <div class="copy-group"><label for="copy-postal_code">Postal Code</label><div class="input-wrapper"><input type="text" value="{{ profile.postal_code }}" readonly id="copy-postal_code"><button class="copy-btn" data-target="copy-postal_code"><span class="material-icons">content_copy</span></button></div></div>
-                        <div class="copy-group"><label for="copy-email">Email</label><div class="input-wrapper"><input type="text" value="{{ profile.email }}" readonly id="copy-email"><button class="copy-btn" data-target="copy-email"><span class="material-icons">content_copy</span></button></div></div>
                     </div>
                 </div>
 
@@ -43,14 +36,13 @@
                         <div class="step-number">2</div>
                         <div class="step-title">
                             <h2>Copy Your Plea Explanation</h2>
-                            <p>This is the explanation for the court.</p>
                         </div>
                         <div class="step-status"><span class="material-icons check-icon">check_circle</span></div>
                     </div>
                     <div class="step-content">
                         <textarea readonly id="copy-plea_text">{{ plea_text }}</textarea>
                         <button class="btn btn-secondary copy-btn" data-target="copy-plea_text">
-                            <span class="material-icons">content_copy</span> Copy Full Explanation
+                            <span class="material-icons">content_copy</span> Copy Explanation
                         </button>
                     </div>
                 </div>
@@ -61,18 +53,23 @@
                         <div class="step-number">3</div>
                         <div class="step-title">
                             <h2>Submit on the Portal</h2>
-                            <p>Open the city's official portal to paste your info.</p>
                         </div>
                     </div>
                     <div class="step-content">
-                        <a href="{{ montreal_url }}" target="_blank" class="btn btn-success">
+                        <button id="openPortalBtn" data-url="{{ montreal_url }}" class="btn btn-success">
                             <span class="material-icons">open_in_new</span> Open Montreal Portal
-                        </a>
+                        </button>
                     </div>
                 </div>
             </div>
         </main>
     </div>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        document.getElementById('openPortalBtn').addEventListener('click', function() {
+            const url = this.dataset.url;
+            window.open(url, '_blank');
+        });
+    </script>
 </body>
 </html>
