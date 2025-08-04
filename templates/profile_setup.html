@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Profile - Tickety</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Tickety Logo" class="header-logo">
+        </header>
+        <main class="app-main">
+            <div class="action-card" style="padding: 1rem;">
+                <h2>My Profile</h2>
+                <p style="text-align: center; color: #757575; margin-bottom: 1.5rem;">
+                    This information will be saved for easy access when fighting tickets.
+                </p>
+                <form method="POST">
+                    <div class="input-group"><label>First Name</label><input type="text" name="first_name" value="{{ profile.first_name or '' }}" required></div>
+                    <div class="input-group"><label>Last Name</label><input type="text" name="last_name" value="{{ profile.last_name or '' }}" required></div>
+                    <div class="input-group"><label>Driver's License Number</label><input type="text" name="license" value="{{ profile.license or '' }}" required></div>
+                    <div class="input-group"><label>Address (Street and Apt)</label><input type="text" name="address" value="{{ profile.address or '' }}" required></div>
+                    <div class="input-group"><label>City</label><input type="text" name="city" value="{{ profile.city or '' }}" required></div>
+                    <div class="input-group"><label>Province/State</label><input type="text" name="province" value="{{ profile.province or 'Québec' }}" required></div>
+                    <div class="input-group"><label>Postal Code</label><input type="text" name="postal_code" value="{{ profile.postal_code or '' }}" required></div>
+                    <div class="input-group"><label>Country</label><input type="text" name="country" value="{{ profile.country or 'Canada' }}" required></div>
+                    <div class="input-group"><label>Email</label><input type="email" name="email" value="{{ profile.email or '' }}" required></div>
+                    <button type="submit" class="btn btn-primary">Save Profile</button>
+                </form>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
