@@ -21,7 +21,6 @@ app.secret_key = os.environ.get('SECRET_KEY', 'your_secret_key_here')
 
 PROFILE_PATH = 'profile.json'
 TEMPLATE_PDF = 'static/base_template.pdf'
-# FILLED_PDF = 'static/output.pdf' # No longer needed as a single global
 CSV_PATH = 'static/Mobicite_Placeholder_Locations.csv'
 
 # Load profiles or create empty
@@ -60,7 +59,6 @@ def service_worker():
     response.headers['Content-Type'] = 'application/javascript'
     return response
 
-# UPDATED: signin route with new profile fields
 @app.route('/signin', methods=['GET', 'POST'])
 def signin():
     if request.method == 'POST':
@@ -83,7 +81,6 @@ def signin():
         return redirect(url_for('index'))
     return render_template('signin.html')
 
-# UPDATED: edit_profile route with new profile fields
 @app.route('/edit_profile', methods=['GET', 'POST'])
 def edit_profile():
     profile = session.get('profile')
@@ -111,7 +108,6 @@ def signout():
     session.pop('profile', None)
     return redirect(url_for('index'))
 
-# UPDATED: This route now prepares data and redirects to the plea_helper page
 @app.route('/generate-and-get-link', methods=['POST'])
 def generate_and_get_link():
     data = request.form
@@ -120,7 +116,7 @@ def generate_and_get_link():
     if not ticket_number or not ticket_number.isdigit() or len(ticket_number) != 9:
         return jsonify(success=False, message="Ticket number must be exactly 9 digits."), 400
 
-    # --- FULL PDF GENERATION LOGIC IS NOW INCLUDED ---
+    # --- FULL PDF GENERATION LOGIC ---
     transaction = ' 00003' + ''.join([str(random.randint(0, 9)) for _ in range(5)])
     reference_number = ' ' + ''.join([str(random.randint(0, 9)) for _ in range(18)])
     auth_code = ' ' + ''.join([str(random.randint(0, 9)) for _ in range(6)])
@@ -145,10 +141,9 @@ def generate_and_get_link():
         'Top date line': date_line, 'Reference number': reference_number
     }
     
-    # Create a unique filename for the PDF to avoid conflicts
     pdf_filename = f"Tickety_Receipt_{ticket_number}_{random.randint(1000,9999)}.pdf"
     pdf_path = os.path.join('static', pdf_filename)
-
+    
     packet = BytesIO()
     c = canvas.Canvas(packet, pagesize=letter)
     with open(CSV_PATH, 'r') as csvfile:
@@ -177,8 +172,7 @@ def generate_and_get_link():
     output.add_page(page)
     with open(pdf_path, 'wb') as f:
         output.write(f)
-    
-    # Store the ticket number and PDF path in the session for the plea helper
+
     session['current_ticket_number'] = ticket_number
     session['current_pdf_path'] = pdf_path
 
@@ -188,7 +182,6 @@ def generate_and_get_link():
         plea_helper_url=url_for('plea_helper', ticket_number=ticket_number)
     )
 
-# NEW: The Plea Helper route
 @app.route('/plea-helper/<ticket_number>', methods=['GET', 'POST'])
 def plea_helper(ticket_number):
     profile = session.get('profile')
@@ -209,8 +202,6 @@ def plea_helper(ticket_number):
     
     return render_template('plea_helper.html', profile=profile, montreal_url=montreal_url, plea_text=plea_text)
 
-
-# --- OCR Route (Unchanged) ---
 @app.route('/scan-ticket', methods=['POST'])
 def scan_ticket():
     if not client:
@@ -227,10 +218,7 @@ def scan_ticket():
             response = client.document_text_detection(image=image)
             raw_text = response.full_text_annotation.text
             
-            ticket_number = ""
-            space_number = ""
-            extracted_date = ""
-            extracted_time = ""
+            ticket_number, space_number, extracted_date, extracted_time = "", "", "", ""
 
             ticket_match = re.search(r'\b(\d{3})\s*(\d{3})\s*(\d{3})\b', raw_text)
             if ticket_match:
@@ -244,22 +232,17 @@ def scan_ticket():
             date_time_match_secondary = re.search(r'Date\s+de\s+signification:\s*(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})', raw_text, re.IGNORECASE)
 
             if date_time_match_primary:
-                extracted_date = date_time_match_primary.group(1)
-                extracted_time = date_time_match_primary.group(2)
+                extracted_date, extracted_time = date_time_match_primary.groups()
             elif date_time_match_secondary:
-                extracted_date = date_time_match_secondary.group(1)
-                extracted_time = date_time_match_secondary.group(2)
+                extracted_date, extracted_time = date_time_match_secondary.groups()
             
             return jsonify(
-                success=True,
-                ticket_number=ticket_number,
-                space=space_number,
-                date=extracted_date,
-                start_time=extracted_time
+                success=True, ticket_number=ticket_number, space=space_number,
+                date=extracted_date, start_time=extracted_time
             )
         except Exception as e:
-            return jsonify(success=False, message=f"Error processing image with API: {str(e)}"), 500
-    return jsonify(success=False, message="An unknown error occurred.")
+            return jsonify(success=False, message=f"Error processing image: {str(e)}"), 500
+    return jsonify(success=False, message="Unknown error.")
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
