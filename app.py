@@ -16,15 +16,12 @@ from google.oauth2 import service_account
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'a_very_secret_key_for_development')
-
-# Set the session to be permanent for the "Remember Me" feature
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 
 PROFILE_PATH = 'profile.json'
 CSV_PATH = 'static/Mobicite_Placeholder_Locations.csv'
 TEMPLATE_PDF = 'static/base_template.pdf'
 
-# Load profiles or create empty
 if os.path.exists(PROFILE_PATH):
     with open(PROFILE_PATH, 'r') as f:
         try:
@@ -34,7 +31,6 @@ if os.path.exists(PROFILE_PATH):
 else:
     profiles = {}
 
-# Initialize Google Cloud Vision client
 try:
     credentials_json = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS_JSON')
     if credentials_json:
@@ -46,18 +42,11 @@ except Exception as e:
     client = None
     print(f"Warning: Google Cloud Vision client could not be initialized. Error: {e}")
 
-# --- Core App and PWA Routes ---
 @app.route('/')
 def index():
     if 'user_email' not in session:
         return redirect(url_for('login'))
-    
-    profile = profiles.get(session['user_email'])
-    if not profile:
-        # If profile is somehow missing, log the user out
-        session.pop('user_email', None)
-        return redirect(url_for('login'))
-        
+    profile = profiles.get(session.get('user_email'))
     return render_template('index.html', profile=profile)
 
 @app.route('/sw.js')
@@ -66,45 +55,30 @@ def service_worker():
     response.headers['Content-Type'] = 'application/javascript'
     return response
 
-# --- AUTHENTICATION SYSTEM ---
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
-
         if not email or not password:
             flash('Email and password are required.')
             return redirect(url_for('signup'))
-
         if email in profiles:
             flash('Email address already exists. Please log in.')
             return redirect(url_for('login'))
-
-        # Hash the password for security
         password_hash = generate_password_hash(password, method='pbkdf2:sha256')
-
         new_user = {
-            'first_name': request.form.get('first_name', ''),
-            'last_name': request.form.get('last_name', ''),
-            'license': request.form.get('license', ''),
-            'address': request.form.get('address', ''),
-            'city': request.form.get('city', ''),
-            'province': request.form.get('province', 'Québec'),
-            'postal_code': request.form.get('postal_code', ''),
-            'country': request.form.get('country', 'Canada'),
-            'email': email,
-            'password_hash': password_hash
+            'first_name': request.form.get('first_name', ''), 'last_name': request.form.get('last_name', ''),
+            'license': request.form.get('license', ''), 'address': request.form.get('address', ''),
+            'city': request.form.get('city', ''), 'province': request.form.get('province', 'Québec'),
+            'postal_code': request.form.get('postal_code', ''), 'country': request.form.get('country', 'Canada'),
+            'email': email, 'password_hash': password_hash
         }
-        
         profiles[email] = new_user
-        with open(PROFILE_PATH, 'w') as f:
-            json.dump(profiles, f, indent=2)
-        
-        session.permanent = True # Remember the user by default
+        with open(PROFILE_PATH, 'w') as f: json.dump(profiles, f, indent=2)
+        session.permanent = True
         session['user_email'] = email
         return redirect(url_for('index'))
-        
     return render_template('signup.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -113,19 +87,13 @@ def login():
         email = request.form.get('email')
         password = request.form.get('password')
         remember = True if request.form.get('remember') else False
-        
         user = profiles.get(email)
-
-        # Check for user and then check password hash
         if not user or not check_password_hash(user.get('password_hash', ''), password):
             flash('Please check your login details and try again.')
             return redirect(url_for('login'))
-        
         session['user_email'] = email
         session.permanent = remember
-        
         return redirect(url_for('index'))
-        
     return render_template('login.html')
 
 @app.route('/signout')
@@ -133,18 +101,12 @@ def signout():
     session.pop('user_email', None)
     return redirect(url_for('login'))
 
-# --- Profile and Plea Helper Routes ---
 @app.route('/edit_profile', methods=['GET', 'POST'])
 def edit_profile():
-    if 'user_email' not in session:
-        return redirect(url_for('login'))
-    
+    if 'user_email' not in session: return redirect(url_for('login'))
     user_email = session['user_email']
     profile = profiles.get(user_email)
-
-    if not profile:
-        return redirect(url_for('login'))
-
+    if not profile: return redirect(url_for('login'))
     if request.method == 'POST':
         profile['first_name'] = request.form.get('first_name', profile.get('first_name'))
         profile['last_name'] = request.form.get('last_name', profile.get('last_name'))
@@ -154,48 +116,20 @@ def edit_profile():
         profile['province'] = request.form.get('province', profile.get('province'))
         profile['postal_code'] = request.form.get('postal_code', profile.get('postal_code'))
         profile['country'] = request.form.get('country', profile.get('country'))
-        
         profiles[user_email] = profile
-        with open(PROFILE_PATH, 'w') as f:
-            json.dump(profiles, f, indent=2)
-        
+        with open(PROFILE_PATH, 'w') as f: json.dump(profiles, f, indent=2)
         flash('Profile updated successfully!')
         return redirect(url_for('index'))
-
     return render_template('edit_profile.html', profile=profile)
 
-@app.route('/plea-helper/<ticket_number>', methods=['GET', 'POST'])
-def plea_helper(ticket_number):
-    if 'user_email' not in session:
-        return redirect(url_for('login'))
-    
-    profile = profiles.get(session['user_email'])
-    if not profile:
-        return redirect(url_for('login'))
-
-    if 'plea_texts' not in session:
-        session['plea_texts'] = {}
-
-    if request.method == 'POST':
-        plea_text = request.form.get('plea_text')
-        session['plea_texts'][ticket_number] = plea_text
-        session.modified = True
-    
-    plea_text = session['plea_texts'].get(ticket_number, '')
-    montreal_url = f"https://services.montreal.ca/plaidoyer/rechercher/en?statement={ticket_number}"
-    
-    return render_template('plea_helper.html', profile=profile, montreal_url=montreal_url, plea_text=plea_text, ticket_number=ticket_number)
-
-# --- PDF and OCR Routes ---
+# UPDATED: This function now generates the PDF and returns links for download AND the plea helper.
 @app.route('/generate-and-get-link', methods=['POST'])
 def generate_and_get_link():
     data = request.form
     ticket_number = data.get('ticket_number')
-
     if not ticket_number or not ticket_number.isdigit() or len(ticket_number) != 9:
         return jsonify(success=False, message="Ticket number must be exactly 9 digits."), 400
 
-    # --- FULL PDF GENERATION LOGIC ---
     transaction = ' 00003' + ''.join([str(random.randint(0, 9)) for _ in range(5)])
     reference_number = ' ' + ''.join([str(random.randint(0, 9)) for _ in range(18)])
     auth_code = ' ' + ''.join([str(random.randint(0, 9)) for _ in range(6)])
@@ -228,17 +162,13 @@ def generate_and_get_link():
     with open(CSV_PATH, 'r') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
-            field = row['field']
-            text = values.get(field, row['text'])
-            x_pt = float(row['x_in']) * 72
-            y_pt = (11 - (float(row['y_in']) + 0.1584)) * 72
+            field, text = row['field'], values.get(row['field'], row['text'])
+            x_pt, y_pt = float(row['x_in']) * 72, (11 - (float(row['y_in']) + 0.1584)) * 72
             c.setFont("Helvetica", 11)
             c.drawString(x_pt, y_pt, text)
-    ref_x = 2.0836 * 72
-    ref_y = (11 - (6.6827 + 0.1584)) * 72
+    ref_x, ref_y = 2.0836 * 72, (11 - (6.6827 + 0.1584)) * 72
     c.drawString(ref_x, ref_y, reference_number)
-    tx_x = 1.9515 * 72
-    tx_y = (11 - (4.8789 + 0.1584)) * 72
+    tx_x, tx_y = 1.9515 * 72, (11 - (4.8789 + 0.1584)) * 72
     c.drawString(tx_x, tx_y, transaction_datetime)
     c.save()
     packet.seek(0)
@@ -251,56 +181,51 @@ def generate_and_get_link():
     output.add_page(page)
     with open(pdf_path, 'wb') as f:
         output.write(f)
-    
+
     session['current_ticket_number'] = ticket_number
-    session['current_pdf_path'] = pdf_path
+    
+    return jsonify(
+        success=True,
+        download_url=url_for('download_pdf', filename=pdf_filename),
+        plea_helper_url=url_for('plea_helper', ticket_number=ticket_number)
+    )
 
-    return jsonify(success=True, plea_helper_url=url_for('plea_helper', ticket_number=ticket_number))
+# NEW: Route to download the specific PDF created.
+@app.route('/download/<filename>')
+def download_pdf(filename):
+    return send_file(os.path.join('static', filename), as_attachment=True)
 
+@app.route('/plea-helper/<ticket_number>')
+def plea_helper(ticket_number):
+    if 'user_email' not in session: return redirect(url_for('login'))
+    profile = profiles.get(session['user_email'])
+    montreal_url = f"https://services.montreal.ca/plaidoyer/rechercher/en?statement={ticket_number}"
+    plea_text = "I plead not guilty. The parking meter was paid for the entire duration that my vehicle was parked at this location."
+    return render_template('plea_helper.html', profile=profile, montreal_url=montreal_url, plea_text=plea_text, ticket_number=ticket_number)
 
 @app.route('/scan-ticket', methods=['POST'])
 def scan_ticket():
-    if not client:
-        return jsonify(success=False, message="Google Cloud Vision API client is not configured."), 500
-    if 'ticket_image' not in request.files:
-        return jsonify(success=False, message="No image file provided."), 400
+    if not client: return jsonify(success=False, message="OCR client not configured."), 500
+    if 'ticket_image' not in request.files: return jsonify(success=False, message="No image file provided."), 400
     file = request.files['ticket_image']
-    if file.filename == '':
-        return jsonify(success=False, message="No file selected."), 400
-    if file:
-        try:
-            content = file.read()
-            image = vision.Image(content=content)
-            response = client.document_text_detection(image=image)
-            raw_text = response.full_text_annotation.text
-            
-            ticket_number, space_number, extracted_date, extracted_time = "", "", "", ""
+    if file.filename == '': return jsonify(success=False, message="No file selected."), 400
+    try:
+        content = file.read()
+        image = vision.Image(content=content)
+        response = client.document_text_detection(image=image)
+        raw_text = response.full_text_annotation.text
+        ticket_number, space_number, extracted_date, extracted_time = "", "", "", ""
+        ticket_match = re.search(r'\b(\d{3})\s*(\d{3})\s*(\d{3})\b', raw_text)
+        if ticket_match: ticket_number = "".join(ticket_match.groups())
+        space_match = re.search(r'(PL\d+)', raw_text, re.IGNORECASE)
+        if space_match: space_number = space_match.group(1).upper()
+        date_time_match = re.search(r'au\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})', raw_text, re.IGNORECASE) or \
+                          re.search(r'Date\s+de\s+signification:\s*(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})', raw_text, re.IGNORECASE)
+        if date_time_match: extracted_date, extracted_time = date_time_match.groups()
+        return jsonify(success=True, ticket_number=ticket_number, space=space_number, date=extracted_date, start_time=extracted_time)
+    except Exception as e:
+        return jsonify(success=False, message=f"Error processing image: {str(e)}"), 500
 
-            ticket_match = re.search(r'\b(\d{3})\s*(\d{3})\s*(\d{3})\b', raw_text)
-            if ticket_match:
-                ticket_number = ticket_match.group(1) + ticket_match.group(2) + ticket_match.group(3)
-
-            space_match = re.search(r'(PL\d+)', raw_text, re.IGNORECASE)
-            if space_match:
-                space_number = space_match.group(1).upper()
-
-            date_time_match_primary = re.search(r'au\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})', raw_text, re.IGNORECASE)
-            date_time_match_secondary = re.search(r'Date\s+de\s+signification:\s*(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})', raw_text, re.IGNORECASE)
-
-            if date_time_match_primary:
-                extracted_date, extracted_time = date_time_match_primary.groups()
-            elif date_time_match_secondary:
-                extracted_date, extracted_time = date_time_match_secondary.groups()
-            
-            return jsonify(
-                success=True, ticket_number=ticket_number, space=space_number,
-                date=extracted_date, start_time=extracted_time
-            )
-        except Exception as e:
-            return jsonify(success=False, message=f"Error processing image: {str(e)}"), 500
-    return jsonify(success=False, message="Unknown error.")
-
-# --- Main Execution ---
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
