@@ -1,7 +1,7 @@
 /* --- Google Font Import --- */
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 
-/* --- Colorful, Classic & Modern Theme Variables --- */
+/* --- Theme Variables --- */
 :root {
     --primary-gradient: linear-gradient(135deg, #4a00e0 0%, #8e2de2 100%);
     --primary-accent-color: #6a11cb;
@@ -26,7 +26,6 @@ body {
     font-family: 'Roboto', sans-serif;
     background-color: var(--background-color);
     color: var(--text-color);
-    overscroll-behavior: none;
 }
 
 .app-container {
@@ -36,35 +35,34 @@ body {
     background-color: var(--card-background);
     display: flex;
     flex-direction: column;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
 /* --- App Header & Profile --- */
 .app-header {
     display: flex;
-    align-items: center; /* Vertically align items */
-    padding: 0.75rem 1rem; /* Adjusted padding */
+    align-items: center;
+    padding: 0.75rem 1rem;
     background-image: var(--primary-gradient);
     color: white;
     flex-shrink: 0;
 }
 
-/* CORRECTED: Logo is now larger and has proper spacing */
 .header-logo {
-    height: 40px; /* Increased height */
+    height: 40px;
     width: auto;
 }
 
 .profile-menu {
     position: relative;
-    margin-left: auto; /* This pushes the profile icon to the far right */
+    margin-left: auto;
 }
 
 .profile-initials {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background-color: rgba(0,0,0,0.2);
+    background-color: rgba(0, 0, 0, 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -80,7 +78,7 @@ body {
     top: 50px;
     background-color: white;
     border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
     width: 200px;
     overflow: hidden;
     z-index: 100;
@@ -106,6 +104,7 @@ body {
     color: var(--text-color);
     transition: background-color 0.2s ease;
 }
+
 .profile-dropdown a:hover {
     background-color: #f5f5f5;
 }
@@ -127,7 +126,6 @@ body {
     height: 100%;
 }
 
-/* CORRECTED: Sign-in logo styles */
 .signin-logo {
     max-width: 220px;
     height: auto;
@@ -141,21 +139,24 @@ body {
     margin-bottom: 2.5rem;
 }
 
-/* --- Action Card (When Signed In) --- */
+/* --- Action Card (Home Page) --- */
 .action-card {
     padding: 1rem;
 }
+
 .action-card h2 {
     font-size: 1.25rem;
     margin-bottom: 1.5rem;
     text-align: center;
     font-weight: 500;
 }
+
 .action-buttons {
     display: flex;
     flex-direction: column;
     gap: 1rem;
 }
+
 .divider {
     text-align: center;
     margin: 1.5rem 0;
@@ -179,51 +180,61 @@ body {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     text-decoration: none;
 }
+
 .btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
+
 .btn-primary {
     background-image: var(--primary-gradient);
     color: white;
 }
+
 .btn-secondary {
     background-color: var(--secondary-color);
     color: var(--text-color);
     border: 1px solid var(--border-color);
 }
+
 .btn-secondary:hover {
     background-color: #e0e0e0;
 }
+
 .btn-success {
     background-color: var(--success-color);
     color: white;
 }
+
 .btn-success:hover {
     background-color: #00b04a;
 }
-
 
 /* --- Form Styles --- */
 form {
     margin-top: 1.5rem;
 }
+
 form > p {
     font-size: 1rem;
     color: var(--text-light);
     text-align: center;
     margin-bottom: 1rem;
 }
+
 .input-group {
     margin-bottom: 1rem;
 }
+
 .input-group label {
     display: block;
     font-size: 0.9rem;
     font-weight: 500;
     margin-bottom: 0.5rem;
 }
-.input-group input {
+
+.input-group input,
+.input-group textarea {
     width: 100%;
     padding: 0.9rem;
     font-size: 1rem;
@@ -231,8 +242,11 @@ form > p {
     border-radius: 8px;
     background-color: #fafafa;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    font-family: 'Roboto', sans-serif;
 }
-.input-group input:focus {
+
+.input-group input:focus,
+.input-group textarea:focus {
     outline: none;
     border-color: var(--primary-accent-color);
     box-shadow: 0 0 0 3px rgba(106, 27, 203, 0.2);
@@ -257,8 +271,8 @@ form > p {
 
 /* --- Scanning Overlay --- */
 .scanning-overlay {
-    background-color: rgba(0, 0, 0, 0.6); 
-    position: fixed; 
+    background-color: rgba(0, 0, 0, 0.6);
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
@@ -268,7 +282,7 @@ form > p {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    display: none; 
+    display: none;
 }
 
 .scanning-overlay img {
@@ -281,3 +295,69 @@ form > p {
     font-size: 1.2rem;
     font-weight: 500;
 }
+
+/* --- Plea Helper Page Styles --- */
+.back-button {
+    color: white;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.helper-subtitle {
+    text-align: center;
+    color: var(--text-light);
+    margin-bottom: 1.5rem;
+}
+
+.copy-group {
+    margin-bottom: 1rem;
+}
+
+.copy-group label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.copy-item {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.copy-item input {
+    flex-grow: 1;
+    background-color: #f9f9f9;
+    border-right: none;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.copy-btn {
+    padding: 0.5rem;
+    background-color: var(--secondary-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.copy-item .copy-btn {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.copy-group textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.copy-group .textarea-copy-btn {
+    width: 100%;
+    margin-top: 0.5rem;
+}
+
