@@ -54,6 +54,7 @@ def index():
     
     profile = profiles.get(session['user_email'])
     if not profile:
+        # If profile is somehow missing, log the user out
         session.pop('user_email', None)
         return redirect(url_for('login'))
         
@@ -65,7 +66,7 @@ def service_worker():
     response.headers['Content-Type'] = 'application/javascript'
     return response
 
-# --- NEW AUTHENTICATION SYSTEM ---
+# --- AUTHENTICATION SYSTEM ---
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
@@ -80,6 +81,7 @@ def signup():
             flash('Email address already exists. Please log in.')
             return redirect(url_for('login'))
 
+        # Hash the password for security
         password_hash = generate_password_hash(password, method='pbkdf2:sha256')
 
         new_user = {
@@ -99,7 +101,7 @@ def signup():
         with open(PROFILE_PATH, 'w') as f:
             json.dump(profiles, f, indent=2)
         
-        session.permanent = True
+        session.permanent = True # Remember the user by default
         session['user_email'] = email
         return redirect(url_for('index'))
         
@@ -114,6 +116,7 @@ def login():
         
         user = profiles.get(email)
 
+        # Check for user and then check password hash
         if not user or not check_password_hash(user.get('password_hash', ''), password):
             flash('Please check your login details and try again.')
             return redirect(url_for('login'))
@@ -139,15 +142,18 @@ def edit_profile():
     user_email = session['user_email']
     profile = profiles.get(user_email)
 
+    if not profile:
+        return redirect(url_for('login'))
+
     if request.method == 'POST':
-        profile['first_name'] = request.form.get('first_name')
-        profile['last_name'] = request.form.get('last_name')
-        profile['license'] = request.form.get('license')
-        profile['address'] = request.form.get('address')
-        profile['city'] = request.form.get('city')
-        profile['province'] = request.form.get('province')
-        profile['postal_code'] = request.form.get('postal_code')
-        profile['country'] = request.form.get('country')
+        profile['first_name'] = request.form.get('first_name', profile.get('first_name'))
+        profile['last_name'] = request.form.get('last_name', profile.get('last_name'))
+        profile['license'] = request.form.get('license', profile.get('license'))
+        profile['address'] = request.form.get('address', profile.get('address'))
+        profile['city'] = request.form.get('city', profile.get('city'))
+        profile['province'] = request.form.get('province', profile.get('province'))
+        profile['postal_code'] = request.form.get('postal_code', profile.get('postal_code'))
+        profile['country'] = request.form.get('country', profile.get('country'))
         
         profiles[user_email] = profile
         with open(PROFILE_PATH, 'w') as f:
@@ -164,6 +170,8 @@ def plea_helper(ticket_number):
         return redirect(url_for('login'))
     
     profile = profiles.get(session['user_email'])
+    if not profile:
+        return redirect(url_for('login'))
 
     if 'plea_texts' not in session:
         session['plea_texts'] = {}
@@ -253,7 +261,7 @@ def generate_and_get_link():
 @app.route('/scan-ticket', methods=['POST'])
 def scan_ticket():
     if not client:
-        return jsonify(success=False, message="Google Cloud Vision client is not configured."), 500
+        return jsonify(success=False, message="Google Cloud Vision API client is not configured."), 500
     if 'ticket_image' not in request.files:
         return jsonify(success=False, message="No image file provided."), 400
     file = request.files['ticket_image']
@@ -296,5 +304,3 @@ def scan_ticket():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
-
-
