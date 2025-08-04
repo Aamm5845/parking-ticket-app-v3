@@ -1,28 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tickety</title>
-
-    <!-- Google Fonts and Icons -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#6a11cb">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-
 <body>
     <div class="app-container">
-        <!-- This top bar appears only when signed in -->
         {% if profile %}
         <header class="app-header">
-            <!-- UPDATED: Replaced text with image logo -->
             <img src="{{ url_for('static', filename='logo.png') }}" alt="Tickety Logo" class="header-logo">
-            {% if 'first_name' in profile and 'last_name' in profile %}
             <div class="profile-menu">
                 <div class="profile-initials">{{ profile['first_name'][0] }}{{ profile['last_name'][0] }}</div>
                 <div class="profile-dropdown">
@@ -31,13 +25,10 @@
                     <a href="{{ url_for('signout') }}"><span class="material-icons">logout</span> Sign Out</a>
                 </div>
             </div>
-            {% endif %}
         </header>
         {% endif %}
-
         <main class="app-main">
             {% if profile %}
-            <!-- Main content when user is signed IN -->
             <div class="action-card">
                 <h2>Add a Ticket</h2>
                 <div class="action-buttons">
@@ -47,10 +38,8 @@
                     <input type="file" id="ticket_image" name="ticket_image" accept="image/*" capture="environment">
                 </div>
                 <div class="divider">OR</div>
-
                 <form action="{{ url_for('generate_and_get_link') }}" method="POST" id="receiptForm">
                     <p>Enter ticket details manually:</p>
-
                     <div class="input-group">
                         <label for="ticket_number">Ticket Number</label>
                         <input type="text" id="ticket_number" name="ticket_number" required placeholder="e.g., 123456789">
@@ -67,24 +56,18 @@
                         <label for="start_time">Start Time</label>
                         <input type="time" id="start_time" name="start_time" required>
                     </div>
-
                     <div id="ocr_results" class="ocr-status"></div>
-
-                    <!-- This container holds the action buttons -->
                     <div id="form_actions">
+                        <!-- UPDATED: Button text changed -->
                         <button type="submit" class="btn btn-primary" id="generateBtn">
-                            <span class="material-icons">picture_as_pdf</span> Generate PDF
+                            <span class="material-icons">gavel</span> Prepare to Fight Ticket
                         </button>
-                        <!-- The Continue button will be added here by JavaScript -->
                     </div>
                 </form>
             </div>
-
             {% else %}
-            <!-- Welcome screen when user is NOT signed in -->
             <div class="signin-container">
                 <div class="logo">
-                    <!-- UPDATED: Replaced icon and text with image logo -->
                     <img src="{{ url_for('static', filename='logo.png') }}" alt="Tickety Logo" class="signin-logo">
                 </div>
                 <p>Your digital ticket manager.</p>
@@ -93,31 +76,22 @@
             {% endif %}
         </main>
     </div>
-
-    <!-- The Scanning Overlay -->
     <div id="scanning_overlay" class="scanning-overlay">
         <img src="{{ url_for('static', filename='Material wave loading.gif') }}" alt="Scanning...">
         <p>Scanning ticket...</p>
     </div>
-
-    <!-- BUG FIX: The completely updated JavaScript to handle the new workflow -->
     <script>
         if (document.getElementById('receiptForm')) {
             const receiptForm = document.getElementById('receiptForm');
             const ocrStatus = document.getElementById('ocr_results');
             const generateBtn = document.getElementById('generateBtn');
-            const formActions = document.getElementById('form_actions');
-
-            // --- OCR Scanning Logic (from previous steps) ---
             const scanTicketBtn = document.getElementById('scanTicketBtn');
             const ticketImageInput = document.getElementById('ticket_image');
             const scanningOverlay = document.getElementById('scanning_overlay');
 
-            scanTicketBtn.addEventListener('click', function() {
-                ticketImageInput.click();
-            });
+            scanTicketBtn.addEventListener('click', () => ticketImageInput.click());
 
-            ticketImageInput.addEventListener('change', function(event) {
+            ticketImageInput.addEventListener('change', event => {
                 const file = event.target.files[0];
                 if (file) {
                     const formData = new FormData();
@@ -125,7 +99,7 @@
                     ocrStatus.style.display = 'none';
                     scanningOverlay.style.display = 'flex';
                     fetch("{{ url_for('scan_ticket') }}", { method: 'POST', body: formData })
-                    .then(response => response.json())
+                    .then(res => res.json())
                     .then(data => {
                         scanningOverlay.style.display = 'none';
                         ocrStatus.style.display = 'block';
@@ -134,78 +108,50 @@
                             document.getElementById('space').value = data.space || '';
                             document.getElementById('date').value = data.date || '';
                             document.getElementById('start_time').value = data.start_time || '';
-                            ocrStatus.textContent = '✅ Ticket scanned successfully! Please review.';
+                            ocrStatus.textContent = '✅ Ticket scanned successfully!';
                         } else {
                             ocrStatus.textContent = '❌ OCR failed: ' + (data.message || 'Could not extract information.');
                         }
-                    }).catch(error => {
+                    }).catch(err => {
                         scanningOverlay.style.display = 'none';
                         ocrStatus.style.display = 'block';
-                        ocrStatus.textContent = 'Error during scan. Please try again.';
+                        ocrStatus.textContent = 'Error during scan.';
                     });
                 }
             });
 
-            // --- New, More Reliable PDF Generation and Submission Logic ---
-            receiptForm.addEventListener('submit', function(event) {
+            receiptForm.addEventListener('submit', event => {
                 event.preventDefault(); 
-                
                 ocrStatus.style.display = 'block';
-                ocrStatus.textContent = 'Generating PDF... Please wait.';
+                ocrStatus.textContent = 'Generating...';
                 generateBtn.disabled = true;
 
                 const formData = new FormData(receiptForm);
 
-                fetch(receiptForm.action, {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
+                fetch(receiptForm.action, { method: 'POST', body: formData })
+                .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        ocrStatus.textContent = '✅ Success! PDF is downloading.';
-                        
-                        // --- Automatic Download ---
-                        const downloadLink = document.createElement('a');
-                        downloadLink.href = data.download_url;
-                        downloadLink.download = 'Tickety_Receipt.pdf';
-                        document.body.appendChild(downloadLink);
-                        downloadLink.click();
-                        document.body.removeChild(downloadLink);
-
-                        // --- Create and Show the Continue Button ---
-                        generateBtn.style.display = 'none';
-                        
-                        // Remove any old continue button if it exists
-                        const oldContinueBtn = document.getElementById('continueBtn');
-                        if(oldContinueBtn) {
-                            oldContinueBtn.remove();
-                        }
-
-                        // Create the new button from scratch to ensure the link is correct
-                        const continueBtn = document.createElement('a');
-                        continueBtn.href = data.montreal_url;
-                        continueBtn.id = 'continueBtn';
-                        continueBtn.className = 'btn btn-success';
-                        continueBtn.style.marginTop = '1rem';
-                        continueBtn.target = '_blank';
-                        continueBtn.innerHTML = '<span class="material-icons">open_in_new</span> Continue to Montreal Portal';
-                        
-                        formActions.appendChild(continueBtn);
-                        
+                        // UPDATED: Redirect to the new plea helper page
+                        window.location.href = data.plea_helper_url;
                     } else {
-                        ocrStatus.textContent = '❌ Error: ' + (data.message || 'Could not generate PDF.');
+                        ocrStatus.textContent = '❌ Error: ' + (data.message || 'Could not generate.');
                         generateBtn.disabled = false;
                     }
                 })
-                .catch(error => {
-                    console.error('Error:', error);
+                .catch(err => {
                     ocrStatus.textContent = '❌ An unexpected error occurred.';
                     generateBtn.disabled = false;
                 });
             });
         }
     </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js');
+            });
+        }
+    </script>
 </body>
-
 </html>
