@@ -95,8 +95,11 @@ def generate_pdf():
     date_str = data.get('date')
     time_str = data.get('start_time')
     date_obj = datetime.strptime(date_str + ' ' + time_str, '%Y-%m-%d %H:%M')
-    offset_minutes = random.randint(1, 2)
+    
+    # UPDATED: Set the offset to exactly 3 minutes
+    offset_minutes = 3
     adjusted_date_obj = date_obj + timedelta(minutes=offset_minutes)
+    
     start_time = adjusted_date_obj.strftime('%Y-%m-%d, %H:%M')
     end_time = (adjusted_date_obj + timedelta(minutes=10)).strftime('%Y-%m-%d, %H:%M')
     date_line = f" {adjusted_date_obj.strftime('%a, %b %d, %Y at %I:%M %p')}"
@@ -177,9 +180,15 @@ def scan_ticket():
         if space_match:
             space_number = space_match.group(1).upper()
         
+        # UPDATED: More robust date and time scanning logic
+        # Try specific French phrases first
         date_time_match = re.search(r'au\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})', raw_text, re.IGNORECASE) or \
                           re.search(r'Date\s+de\s+signification:\s*(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})', raw_text, re.IGNORECASE)
         
+        # If those fail, try a more general pattern for just the date and time format
+        if not date_time_match:
+            date_time_match = re.search(r'\b(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})\b', raw_text)
+
         if date_time_match:
             extracted_date, extracted_time = date_time_match.groups()
         
@@ -193,3 +202,4 @@ def scan_ticket():
 # --- Main Execution ---
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
