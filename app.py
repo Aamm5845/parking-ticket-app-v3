@@ -18,9 +18,10 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'a_very_secret_key_for_development')
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 
-# Use Render's persistent disk for data storage
+# CORRECT: Use Render's persistent disk for data storage
 DATA_DIR = os.environ.get('RENDER_DISK_PATH', '.')
 PROFILE_PATH = os.path.join(DATA_DIR, 'profile.json')
+
 CSV_PATH = 'static/Mobicite_Placeholder_Locations.csv'
 TEMPLATE_PDF = 'static/base_template.pdf'
 
@@ -129,8 +130,6 @@ def edit_profile():
     return render_template('edit_profile.html', profile=profile)
 
 # --- PDF AND PLEA HELPER ROUTES ---
-
-# NEW: This is the simple, reliable PDF download route.
 @app.route('/generate_pdf', methods=['POST'])
 def generate_pdf():
     data = request.form
@@ -138,7 +137,6 @@ def generate_pdf():
     if not ticket_number or not ticket_number.isdigit() or len(ticket_number) != 9:
         return "Invalid ticket number.", 400
 
-    # (Full PDF generation logic from previous versions)
     transaction = ' 00003' + ''.join([str(random.randint(0, 9)) for _ in range(5)])
     reference_number = ' ' + ''.join([str(random.randint(0, 9)) for _ in range(18)])
     auth_code = ' ' + ''.join([str(random.randint(0, 9)) for _ in range(6)])
@@ -161,7 +159,7 @@ def generate_pdf():
         'Top date line': date_line, 'Reference number': reference_number
     }
     
-    packet = BytesIO() # Generate PDF in memory
+    packet = BytesIO()
     c = canvas.Canvas(packet, pagesize=letter)
     with open(CSV_PATH, 'r') as csvfile:
         reader = csv.DictReader(csvfile)
@@ -199,20 +197,35 @@ def generate_pdf():
 def plea_helper():
     if 'user_email' not in session: return redirect(url_for('login'))
     profile = profiles.get(session['user_email'])
-    
-    # Get ticket number from URL query, e.g., /plea-helper?ticket_number=123
     ticket_number = request.args.get('ticket_number', '')
-    
     montreal_url = f"https://services.montreal.ca/plaidoyer/rechercher/en?statement={ticket_number}"
     plea_text = "I plead not guilty. The parking meter was paid for the entire duration that my vehicle was parked at this location."
-    
     return render_template('plea_helper.html', profile=profile, montreal_url=montreal_url, plea_text=plea_text, ticket_number=ticket_number)
 
 @app.route('/scan-ticket', methods=['POST'])
 def scan_ticket():
-    # (Your full OCR logic here...)
-    return jsonify(success=True) # Placeholder
+    if not client: return jsonify(success=False, message="OCR client not configured."), 500
+    if 'ticket_image' not in request.files: return jsonify(success=False, message="No image file provided."), 400
+    file = request.files['ticket_image']
+    if file.filename == '': return jsonify(success=False, message="No file selected."), 400
+    try:
+        content = file.read()
+        image = vision.Image(content=content)
+        response = client.document_text_detection(image=image)
+        raw_text = response.full_text_annotation.text
+        ticket_number, space_number, extracted_date, extracted_time = "", "", "", ""
+        ticket_match = re.search(r'\b(\d{3})\s*(\d{3})\s*(\d{3})\b', raw_text)
+        if ticket_match: ticket_number = "".join(ticket_match.groups())
+        space_match = re.search(r'(PL\d+)', raw_text, re.IGNORECASE)
+        if space_match: space_number = space_match.group(1).upper()
+        date_time_match = re.search(r'au\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})', raw_text, re.IGNORECASE) or \
+                          re.search(r'Date\s+de\s+signification:\s*(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})', raw_text, re.IGNORECASE)
+        if date_time_match: extracted_date, extracted_time = date_time_match.groups()
+        return jsonify(success=True, ticket_number=ticket_number, space=space_number, date=extracted_date, start_time=extracted_time)
+    except Exception as e:
+        return jsonify(success=False, message=f"Error processing image: {str(e)}"), 500
 
+# --- Main Execution ---
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True
+    app.run(host="0.0.0.0", port=port, debug=True)
