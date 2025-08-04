@@ -20,7 +20,8 @@
         <!-- This top bar appears only when signed in -->
         {% if profile %}
         <header class="app-header">
-            <h1>Tickety</h1>
+            <!-- UPDATED: Replaced text with image logo -->
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Tickety Logo" class="header-logo">
             {% if 'first_name' in profile and 'last_name' in profile %}
             <div class="profile-menu">
                 <div class="profile-initials">{{ profile['first_name'][0] }}{{ profile['last_name'][0] }}</div>
@@ -83,8 +84,8 @@
             <!-- Welcome screen when user is NOT signed in -->
             <div class="signin-container">
                 <div class="logo">
-                    <span class="material-icons">confirmation_number</span>
-                    <h1>Tickety</h1>
+                    <!-- UPDATED: Replaced icon and text with image logo -->
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Tickety Logo" class="signin-logo">
                 </div>
                 <p>Your digital ticket manager.</p>
                 <a href="{{ url_for('signin') }}" class="btn btn-primary">Sign In to Continue</a>
