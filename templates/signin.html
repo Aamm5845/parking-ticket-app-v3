@@ -3,58 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign In - Tickety</title>
+    <title>Sign Up - Tickety</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
     <div class="app-container">
         <main class="app-main">
             <div class="action-card">
-                <h2>Create Your Profile</h2>
-                <p style="text-align: center; color: #757575; margin-bottom: 1.5rem;">
-                    This information will be saved for easy access when fighting tickets.
-                </p>
-                <form method="POST">
-                    <div class="input-group">
-                        <label>First Name</label>
-                        <input type="text" name="first_name" required>
-                    </div>
-                    <div class="input-group">
-                        <label>Last Name</label>
-                        <input type="text" name="last_name" required>
-                    </div>
-                    <div class="input-group">
-                        <label>Driver's License Number</label>
-                        <input type="text" name="license" required>
-                    </div>
-                    <div class="input-group">
-                        <label>Address (Street and Apt)</label>
-                        <input type="text" name="address" required>
-                    </div>
-                    <div class="input-group">
-                        <label>City</label>
-                        <input type="text" name="city" required>
-                    </div>
-                    <div class="input-group">
-                        <label>Province/State</label>
-                        <input type="text" name="province" value="Québec" required>
-                    </div>
-                    <div class="input-group">
-                        <label>Postal Code</label>
-                        <input type="text" name="postal_code" required>
-                    </div>
-                     <div class="input-group">
-                        <label>Country</label>
-                        <input type="text" name="country" value="Canada" required>
-                    </div>
-                    <div class="input-group">
-                        <label>Email</label>
-                        <input type="email" name="email" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Save Profile</button>
+                <div class="logo" style="text-align: center; margin-bottom: 1rem;">
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Tickety Logo" class="signin-logo">
+                </div>
+                <h2>Create Your Account</h2>
+                <form method="POST" onsubmit="return validatePassword()">
+                    <!-- Flash messages for errors -->
+                    {% with messages = get_flashed_messages() %}
+                        {% if messages %}
+                            <p class="flash-error">{{ messages[0] }}</p>
+                        {% endif %}
+                    {% endwith %}
+
+                    <div class="input-group"><label>First Name</label><input type="text" name="first_name" required></div>
+                    <div class="input-group"><label>Last Name</label><input type="text" name="last_name" required></div>
+                    <div class="input-group"><label>Driver's License Number</label><input type="text" name="license" required></div>
+                    <div class="input-group"><label>Address</label><input type="text" name="address" required></div>
+                    <div class="input-group"><label>City</label><input type="text" name="city" required></div>
+                    <div class="input-group"><label>Province/State</label><input type="text" name="province" value="Québec" required></div>
+                    <div class="input-group"><label>Postal Code</label><input type="text" name="postal_code" required></div>
+                    <div class="input-group"><label>Country</label><input type="text" name="country" value="Canada" required></div>
+                    <div class="input-group"><label>Email</label><input type="email" name="email" required></div>
+                    <div class="input-group"><label>Password</label><input type="password" id="password" name="password" required></div>
+                    <div class="input-group"><label>Confirm Password</label><input type="password" id="confirm_password" name="confirm_password" required></div>
+                    
+                    <button type="submit" class="btn btn-primary">Sign Up</button>
                 </form>
+                <p class="auth-switch">Already have an account? <a href="{{ url_for('login') }}">Log In</a></p>
             </div>
         </main>
     </div>
+    <script>
+        function validatePassword() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+            if (password !== confirmPassword) {
+                alert("Passwords do not match.");
+                return false;
+            }
+            return true;
+        }
+    </script>
 </body>
 </html>
