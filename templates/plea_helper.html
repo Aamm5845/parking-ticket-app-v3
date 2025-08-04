@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plea Helper - Tickety</title>
+    <title>Fight Ticket - Tickety</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
@@ -11,118 +11,68 @@
     <div class="app-container">
         <header class="app-header">
              <a href="{{ url_for('index') }}" class="back-button"><span class="material-icons">arrow_back</span></a>
-             <h1 style="margin-left: 1rem;">Fight Ticket</h1>
+             <h1 style="margin-left: 1rem;">Fight Your Ticket</h1>
         </header>
         <main class="app-main">
-            <div class="action-card">
-                <h2>Step 1: Copy Your Info</h2>
-                <p class="helper-subtitle">Tap 'Copy' then paste into the form on the city's portal.</p>
-
-                <div class="copy-group">
-                    <label>Ticket Number</label>
-                    <div class="copy-item">
-                        <input type="text" value="{{ ticket_number }}" readonly id="copy-ticket_number">
-                        <button class="copy-btn" data-target="copy-ticket_number"><span class="material-icons">content_copy</span> Copy</button>
+            <div class="stepper">
+                <!-- Step 1: Copy Info -->
+                <div class="step" id="step-1">
+                    <div class="step-header">
+                        <div class="step-number">1</div>
+                        <div class="step-title">
+                            <h2>Copy Your Information</h2>
+                            <p>Copy each piece of info for the portal.</p>
+                        </div>
+                        <div class="step-status"><span class="material-icons check-icon">check_circle</span></div>
                     </div>
-                </div>
-                <div class="divider"></div>
-                
-                <div class="copy-group">
-                    <label>First Name</label>
-                    <div class="copy-item">
-                        <input type="text" value="{{ profile.first_name }}" readonly id="copy-first_name">
-                        <button class="copy-btn" data-target="copy-first_name"><span class="material-icons">content_copy</span> Copy</button>
-                    </div>
-                </div>
-                <div class="copy-group">
-                    <label>Last Name</label>
-                    <div class="copy-item">
-                        <input type="text" value="{{ profile.last_name }}" readonly id="copy-last_name">
-                        <button class="copy-btn" data-target="copy-last_name"><span class="material-icons">content_copy</span> Copy</button>
-                    </div>
-                </div>
-                <div class="copy-group">
-                    <label>Driver's License</label>
-                    <div class="copy-item">
-                        <input type="text" value="{{ profile.license }}" readonly id="copy-license">
-                        <button class="copy-btn" data-target="copy-license"><span class="material-icons">content_copy</span> Copy</button>
-                    </div>
-                </div>
-                <div class="copy-group">
-                    <label>Address</label>
-                    <div class="copy-item">
-                        <input type="text" value="{{ profile.address }}" readonly id="copy-address">
-                        <button class="copy-btn" data-target="copy-address"><span class="material-icons">content_copy</span> Copy</button>
-                    </div>
-                </div>
-                <div class="copy-group">
-                    <label>City</label>
-                    <div class="copy-item">
-                        <input type="text" value="{{ profile.city }}" readonly id="copy-city">
-                        <button class="copy-btn" data-target="copy-city"><span class="material-icons">content_copy</span> Copy</button>
-                    </div>
-                </div>
-                <div class="copy-group">
-                    <label>Postal Code</label>
-                    <div class="copy-item">
-                        <input type="text" value="{{ profile.postal_code }}" readonly id="copy-postal_code">
-                        <button class="copy-btn" data-target="copy-postal_code"><span class="material-icons">content_copy</span> Copy</button>
-                    </div>
-                </div>
-                <div class="copy-group">
-                    <label>Email</label>
-                    <div class="copy-item">
-                        <input type="text" value="{{ profile.email }}" readonly id="copy-email">
-                        <button class="copy-btn" data-target="copy-email"><span class="material-icons">content_copy</span> Copy</button>
+                    <div class="step-content">
+                        <div class="copy-group"><label for="copy-ticket_number">Ticket Number</label><div class="input-wrapper"><input type="text" value="{{ ticket_number }}" readonly id="copy-ticket_number"><button class="copy-btn" data-target="copy-ticket_number"><span class="material-icons">content_copy</span></button></div></div>
+                        <div class="copy-group"><label for="copy-first_name">First Name</label><div class="input-wrapper"><input type="text" value="{{ profile.first_name }}" readonly id="copy-first_name"><button class="copy-btn" data-target="copy-first_name"><span class="material-icons">content_copy</span></button></div></div>
+                        <div class="copy-group"><label for="copy-last_name">Last Name</label><div class="input-wrapper"><input type="text" value="{{ profile.last_name }}" readonly id="copy-last_name"><button class="copy-btn" data-target="copy-last_name"><span class="material-icons">content_copy</span></button></div></div>
+                        <div class="copy-group"><label for="copy-license">Driver's License</label><div class="input-wrapper"><input type="text" value="{{ profile.license }}" readonly id="copy-license"><button class="copy-btn" data-target="copy-license"><span class="material-icons">content_copy</span></button></div></div>
+                        <div class="copy-group"><label for="copy-address">Address</label><div class="input-wrapper"><input type="text" value="{{ profile.address }}" readonly id="copy-address"><button class="copy-btn" data-target="copy-address"><span class="material-icons">content_copy</span></button></div></div>
+                        <div class="copy-group"><label for="copy-city">City</label><div class="input-wrapper"><input type="text" value="{{ profile.city }}" readonly id="copy-city"><button class="copy-btn" data-target="copy-city"><span class="material-icons">content_copy</span></button></div></div>
+                        <div class="copy-group"><label for="copy-postal_code">Postal Code</label><div class="input-wrapper"><input type="text" value="{{ profile.postal_code }}" readonly id="copy-postal_code"><button class="copy-btn" data-target="copy-postal_code"><span class="material-icons">content_copy</span></button></div></div>
+                        <div class="copy-group"><label for="copy-email">Email</label><div class="input-wrapper"><input type="text" value="{{ profile.email }}" readonly id="copy-email"><button class="copy-btn" data-target="copy-email"><span class="material-icons">content_copy</span></button></div></div>
                     </div>
                 </div>
 
-                <div class="divider"></div>
-
-                <h2>Step 2: Copy Your Plea</h2>
-                <div class="copy-group">
-                    <textarea readonly id="copy-plea_text">{{ plea_text }}</textarea>
-                    <div class="copy-item">
-                         <button type="button" class="copy-btn textarea-copy-btn" data-target="copy-plea_text"><span class="material-icons">content_copy</span> Copy Explanation</button>
+                <!-- Step 2: Copy Plea -->
+                <div class="step" id="step-2">
+                    <div class="step-header">
+                        <div class="step-number">2</div>
+                        <div class="step-title">
+                            <h2>Copy Your Plea Explanation</h2>
+                            <p>This is the explanation for the court.</p>
+                        </div>
+                        <div class="step-status"><span class="material-icons check-icon">check_circle</span></div>
+                    </div>
+                    <div class="step-content">
+                        <textarea readonly id="copy-plea_text">{{ plea_text }}</textarea>
+                        <button class="btn btn-secondary copy-btn" data-target="copy-plea_text">
+                            <span class="material-icons">content_copy</span> Copy Full Explanation
+                        </button>
                     </div>
                 </div>
 
-                <div class="divider"></div>
-
-                <h2>Step 3: Submit on Portal</h2>
-                <a href="{{ montreal_url }}" target="_blank" class="btn btn-success">
-                    <span class="material-icons">open_in_new</span> Open Montreal Portal
-                </a>
-
+                <!-- Step 3: Submit -->
+                <div class="step" id="step-3">
+                    <div class="step-header">
+                        <div class="step-number">3</div>
+                        <div class="step-title">
+                            <h2>Submit on the Portal</h2>
+                            <p>Open the city's official portal to paste your info.</p>
+                        </div>
+                    </div>
+                    <div class="step-content">
+                        <a href="{{ montreal_url }}" target="_blank" class="btn btn-success">
+                            <span class="material-icons">open_in_new</span> Open Montreal Portal
+                        </a>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
-
-    <script>
-        document.querySelectorAll('.copy-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
-                e.preventDefault();
-                const targetId = button.dataset.target;
-                const input = document.getElementById(targetId);
-                
-                input.select();
-                // For mobile
-                input.setSelectionRange(0, 99999);
-                
-                try {
-                    navigator.clipboard.writeText(input.value);
-                    const originalText = button.innerHTML;
-                    button.innerHTML = '<span class="material-icons">done</span> Copied!';
-                    setTimeout(() => {
-                        button.innerHTML = originalText;
-                    }, 2000);
-                } catch (err) {
-                    console.error('Failed to copy text: ', err);
-                }
-            });
-        });
-    </script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
-
-
