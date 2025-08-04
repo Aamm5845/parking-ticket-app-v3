@@ -70,7 +70,7 @@
                     <img src="{{ url_for('static', filename='logo.png') }}" alt="Tickety Logo" class="signin-logo">
                 </div>
                 <p>Your digital ticket manager.</p>
-                <a href="{{ url_for('login') }}" class="btn btn-primary">Log In</a>
+                <a href="{{ url_for('login') }}" class="btn btn-primary">Log In to Continue</a>
                 <p class="auth-switch" style="margin-top:1rem;">Don't have an account? <a href="{{ url_for('signup') }}">Sign Up</a></p>
             </div>
             {% endif %}
@@ -85,6 +85,7 @@
             const receiptForm = document.getElementById('receiptForm');
             const ocrStatus = document.getElementById('ocr_results');
             const generateBtn = document.getElementById('generateBtn');
+            const formActions = document.getElementById('form_actions');
             const scanTicketBtn = document.getElementById('scanTicketBtn');
             const ticketImageInput = document.getElementById('ticket_image');
             const scanningOverlay = document.getElementById('scanning_overlay');
@@ -132,22 +133,8 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        ocrStatus.textContent = '✅ Success! Downloading PDF and redirecting...';
-                        
-                        // 1. Trigger the download immediately
-                        const downloadLink = document.createElement('a');
-                        downloadLink.href = data.download_url;
-                        downloadLink.download = 'Tickety_Receipt.pdf'; // Suggest a filename
-                        document.body.appendChild(downloadLink);
-                        downloadLink.click();
-                        document.body.removeChild(downloadLink);
-
-                        // 2. Navigate to the next page after a short delay
-                        // This gives the browser a moment to process the download request
-                        setTimeout(() => {
-                            window.location.href = data.plea_helper_url;
-                        }, 700); // 700 milliseconds delay
-
+                        // On success, redirect to the new plea helper page
+                        window.location.href = data.plea_helper_url;
                     } else {
                         ocrStatus.textContent = '❌ Error: ' + (data.message || 'Could not generate PDF.');
                         generateBtn.disabled = false;
