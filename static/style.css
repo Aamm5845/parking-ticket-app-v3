@@ -16,379 +16,79 @@
 }
 
 /* --- General Reset & Body --- */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    font-family: 'Roboto', sans-serif;
-    background-color: var(--background-color);
-    color: var(--text-color);
-}
-
-.app-container {
-    max-width: 450px;
-    min-height: 100vh;
-    margin: 0 auto;
-    background-color: var(--card-background);
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Roboto', sans-serif; background-color: var(--background-color); color: var(--text-color); }
+.app-container { max-width: 450px; min-height: 100vh; margin: 0 auto; background-color: var(--card-background); display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
 
 /* --- App Header & Profile --- */
-.app-header {
-    display: flex;
-    align-items: center;
-    padding: 0.75rem 1rem;
-    background-image: var(--primary-gradient);
-    color: white;
-    flex-shrink: 0;
-}
-
-.header-logo {
-    height: 40px;
-    width: auto;
-}
-
-.profile-menu {
-    position: relative;
-    margin-left: auto;
-}
-
-.profile-initials {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-color: rgba(0, 0, 0, 0.2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 500;
-    cursor: pointer;
-    border: 2px solid white;
-}
-
-.profile-dropdown {
-    display: none;
-    position: absolute;
-    right: 0;
-    top: 50px;
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-    width: 200px;
-    overflow: hidden;
-    z-index: 100;
-}
-
-.profile-menu:hover .profile-dropdown {
-    display: block;
-}
-
-.dropdown-header {
-    padding: 1rem;
-    font-weight: 500;
-    border-bottom: 1px solid var(--border-color);
-    color: var(--text-color);
-}
-
-.profile-dropdown a {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    text-decoration: none;
-    color: var(--text-color);
-    transition: background-color 0.2s ease;
-}
-
-.profile-dropdown a:hover {
-    background-color: #f5f5f5;
-}
+.app-header { display: flex; align-items: center; padding: 0.75rem 1rem; background-image: var(--primary-gradient); color: white; flex-shrink: 0; }
+.header-logo { height: 40px; width: auto; }
+.profile-menu { position: relative; margin-left: auto; }
+.profile-initials { width: 40px; height: 40px; border-radius: 50%; background-color: rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; font-weight: 500; cursor: pointer; border: 2px solid white; }
+.profile-dropdown { display: none; position: absolute; right: 0; top: 50px; background-color: white; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); width: 200px; overflow: hidden; z-index: 100; }
+.profile-menu:hover .profile-dropdown { display: block; }
+.dropdown-header { padding: 1rem; font-weight: 500; border-bottom: 1px solid var(--border-color); color: var(--text-color); }
+.profile-dropdown a { display: flex; align-items: center; gap: 1rem; padding: 1rem; text-decoration: none; color: var(--text-color); transition: background-color 0.2s ease; }
+.profile-dropdown a:hover { background-color: #f5f5f5; }
 
 /* --- Main Content Area --- */
-.app-main {
-    flex-grow: 1;
-    padding: 1.5rem;
-    overflow-y: auto;
-}
+.app-main { flex-grow: 1; padding: 1.5rem; overflow-y: auto; }
 
 /* --- Sign In Screen --- */
-.signin-container {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    height: 100%;
-}
-
-.signin-logo {
-    max-width: 220px;
-    height: auto;
-    margin-bottom: 0.5rem;
-}
-
-.signin-container p {
-    font-size: 1rem;
-    color: var(--text-light);
-    margin-top: 0.5rem;
-    margin-bottom: 2.5rem;
-}
+.signin-container { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; height: 100%; }
+.signin-logo { max-width: 220px; height: auto; margin-bottom: 0.5rem; }
+.signin-container p { font-size: 1rem; color: var(--text-light); margin-top: 0.5rem; margin-bottom: 2.5rem; }
 
 /* --- Action Card (Home Page) --- */
-.action-card {
-    padding: 1rem;
-}
-
-.action-card h2 {
-    font-size: 1.25rem;
-    margin-bottom: 1.5rem;
-    text-align: center;
-    font-weight: 500;
-}
-
-.action-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.divider {
-    text-align: center;
-    margin: 1.5rem 0;
-    color: var(--text-light);
-    font-weight: 500;
-}
+.action-card { padding: 0; } /* Remove padding for stepper */
+.action-card h2 { font-size: 1.25rem; margin-bottom: 1.5rem; text-align: center; font-weight: 500; }
+.action-buttons { display: flex; flex-direction: column; gap: 1rem; }
+.divider { text-align: center; margin: 1.5rem 0; color: var(--text-light); font-weight: 500; }
 
 /* --- General Button Styles --- */
-.btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    width: 100%;
-    padding: 1rem;
-    font-size: 1rem;
-    font-weight: 500;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    text-decoration: none;
-}
-
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-}
-
-.btn-primary {
-    background-image: var(--primary-gradient);
-    color: white;
-}
-
-.btn-secondary {
-    background-color: var(--secondary-color);
-    color: var(--text-color);
-    border: 1px solid var(--border-color);
-}
-
-.btn-secondary:hover {
-    background-color: #e0e0e0;
-}
-
-.btn-success {
-    background-color: var(--success-color);
-    color: white;
-}
-
-.btn-success:hover {
-    background-color: #00b04a;
-}
+.btn { display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; padding: 1rem; font-size: 1rem; font-weight: 500; border: none; border-radius: 12px; cursor: pointer; transition: all 0.2s ease; text-decoration: none; }
+.btn:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+.btn-primary { background-image: var(--primary-gradient); color: white; }
+.btn-secondary { background-color: var(--secondary-color); color: var(--text-color); border: 1px solid var(--border-color); }
+.btn-secondary:hover { background-color: #e0e0e0; }
+.btn-success { background-color: var(--success-color); color: white; }
+.btn-success:hover { background-color: #00b04a; }
 
 /* --- Form Styles --- */
-form {
-    margin-top: 1.5rem;
-}
-
-form > p {
-    font-size: 1rem;
-    color: var(--text-light);
-    text-align: center;
-    margin-bottom: 1rem;
-}
-
-.input-group {
-    margin-bottom: 1rem;
-}
-
-.input-group label {
-    display: block;
-    font-size: 0.9rem;
-    font-weight: 500;
-    margin-bottom: 0.5rem;
-}
-
-.input-group input,
-.input-group textarea {
-    width: 100%;
-    padding: 0.9rem;
-    font-size: 1rem;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    background-color: #fafafa;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    font-family: 'Roboto', sans-serif;
-}
-
-.input-group input:focus,
-.input-group textarea:focus {
-    outline: none;
-    border-color: var(--primary-accent-color);
-    box-shadow: 0 0 0 3px rgba(106, 27, 203, 0.2);
-}
-
-/* --- Hidden File Input --- */
-#ticket_image {
-    display: none;
-}
-
-/* --- OCR Status Message --- */
-.ocr-status {
-    display: none;
-    text-align: center;
-    margin-top: 1.5rem;
-    padding: 0.8rem;
-    border-radius: 8px;
-    font-weight: 500;
-    background-color: #e3f2fd;
-    color: #1e88e5;
-}
+form { margin-top: 1.5rem; }
+form > p { font-size: 1rem; color: var(--text-light); text-align: center; margin-bottom: 1rem; }
+.input-group { margin-bottom: 1rem; }
+.input-group label { display: block; font-size: 0.9rem; font-weight: 500; margin-bottom: 0.5rem; }
+.input-group input, .input-group textarea { width: 100%; padding: 0.9rem; font-size: 1rem; border: 1px solid var(--border-color); border-radius: 8px; background-color: #fafafa; transition: border-color 0.2s ease, box-shadow 0.2s ease; font-family: 'Roboto', sans-serif; }
+.input-group input:focus, .input-group textarea:focus { outline: none; border-color: var(--primary-accent-color); box-shadow: 0 0 0 3px rgba(106, 27, 203, 0.2); }
+#ticket_image { display: none; }
+.ocr-status { display: none; text-align: center; margin-top: 1.5rem; padding: 0.8rem; border-radius: 8px; font-weight: 500; background-color: #e3f2fd; color: #1e88e5; }
 
 /* --- Scanning Overlay --- */
-.scanning-overlay {
-    background-color: rgba(0, 0, 0, 0.6);
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    display: none;
-}
+.scanning-overlay { background-color: rgba(0, 0, 0, 0.6); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center; display: none; }
+.scanning-overlay img { width: 100px; margin-bottom: 1rem; }
+.scanning-overlay p { color: white; font-size: 1.2rem; font-weight: 500; }
 
-.scanning-overlay img {
-    width: 100px;
-    margin-bottom: 1rem;
-}
+/* --- NEW: Stepper Styles --- */
+.stepper .step { background-color: var(--card-background); border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid var(--border-color); transition: all 0.3s ease-in-out; }
+.step-header { display: flex; align-items: center; padding: 1rem 1.5rem; cursor: default; }
+.step-number { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background-color: var(--background-color); border: 2px solid var(--border-color); font-weight: 600; color: var(--text-secondary); margin-right: 1rem; transition: all 0.3s ease-in-out; }
+.step-title h2 { font-size: 1.1rem; font-weight: 600; margin: 0; }
+.step-title p { font-size: 0.9rem; color: var(--text-light); margin: 0.25rem 0 0; }
+.step-status { margin-left: auto; }
+.step-status .check-icon { font-size: 28px; color: var(--success-color); transform: scale(0); transition: transform 0.3s ease-in-out; }
+.step.step-completed .step-number { background-color: var(--success-color); color: white; border-color: var(--success-color); }
+.step.step-completed .check-icon { transform: scale(1); }
+.step-content { padding: 0 1.5rem 1.5rem; }
 
-.scanning-overlay p {
-    color: white;
-    font-size: 1.2rem;
-    font-weight: 500;
-}
-
-/* --- Plea Helper Page Styles --- */
-.back-button {
-    color: white;
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.helper-subtitle {
-    text-align: center;
-    color: var(--text-light);
-    margin-bottom: 1.5rem;
-}
-
-.copy-group {
-    margin-bottom: 1rem;
-}
-
-.copy-group label {
-    display: block;
-    font-size: 0.9rem;
-    font-weight: 500;
-    margin-bottom: 0.5rem;
-}
-
-.copy-item {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.copy-item input {
-    flex-grow: 1;
-    background-color: #f9f9f9;
-    border-right: none;
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-}
-
-.copy-btn {
-    padding: 0.5rem;
-    background-color: var(--secondary-color);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.copy-item .copy-btn {
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-}
-
-.copy-group textarea {
-    min-height: 120px;
-    resize: vertical;
-}
-
-.copy-group .textarea-copy-btn {
-    width: 100%;
-    margin-top: 0.5rem;
-}
-/* --- NEW: Auth Page Styles --- */
-.auth-switch {
-    text-align: center;
-    margin-top: 1.5rem;
-    color: var(--text-light);
-}
-.auth-switch a {
-    color: var(--primary-accent-color);
-    font-weight: 500;
-    text-decoration: none;
-}
-.flash-error {
-    background-color: #ffcdd2;
-    color: #c62828;
-    padding: 1rem;
-    border-radius: 8px;
-    margin-bottom: 1rem;
-    text-align: center;
-    font-weight: 500;
-}
-.remember-me {
-    display: flex;
-    align-items: center;
-    margin: 1rem 0;
-}
-.remember-me input {
-    margin-right: 0.5rem;
-}
-.remember-me label {
-    color: var(--text-light);
-}
-
+/* --- NEW: Plea Helper Copy Field Styles --- */
+.copy-group { margin-bottom: 1.25rem; }
+.copy-group:last-child { margin-bottom: 0; }
+.copy-group label { display: block; font-size: 0.9rem; font-weight: 500; color: var(--text-color); margin-bottom: 0.5rem; }
+.input-wrapper { display: flex; }
+.input-wrapper input[type="text"] { flex-grow: 1; border: 1px solid var(--border-color); background-color: #f9f9fb; padding: 0.75rem; border-radius: 8px 0 0 8px; font-family: 'Roboto', sans-serif; font-size: 1rem; color: var(--text-light); border-right: none; }
+.input-wrapper input:focus { outline: none; border-color: var(--primary-accent-color); box-shadow: 0 0 0 3px rgba(106, 27, 203, 0.2); position: relative; z-index: 1; }
+.copy-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; background-image: var(--primary-gradient); color: white; border: 1px solid var(--primary-accent-color); padding: 0.75rem; font-size: 0.9rem; font-weight: 600; border-radius: 0 8px 8px 0; cursor: pointer; transition: all 0.2s ease; }
+.copy-btn .material-icons { font-size: 1.1rem; }
+textarea { width: 100%; box-sizing: border-box; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; font-family: 'Roboto', sans-serif; font-size: 1rem; min-height: 120px; margin-bottom: 1rem; background-color: #f9f9fb; }
+.back-button { color: white; text-decoration: none; display: flex; align-items: center; justify-content: center; }
