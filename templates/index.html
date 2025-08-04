@@ -14,6 +14,7 @@
 </head>
 <body>
     <div class="app-container">
+        {% if profile %}
         <header class="app-header">
             <img src="{{ url_for('static', filename='logo.png') }}" alt="Tickety Logo" class="header-logo">
             <div class="profile-menu">
@@ -48,16 +49,29 @@
                 </form>
             </div>
         </main>
+        {% else %}
+            <!-- This part is for when the user is logged out -->
+            <div class="signin-container">
+                 <div class="logo">
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Tickety Logo" class="signin-logo">
+                </div>
+                <p>Your digital ticket manager.</p>
+                <a href="{{ url_for('setup_profile') }}" class="btn btn-primary">Set Up My Profile</a>
+            </div>
+        {% endif %}
     </div>
     <div id="scanning_overlay" class="scanning-overlay">
         <img src="{{ url_for('static', filename='Material wave loading.gif') }}" alt="Scanning...">
         <p>Scanning ticket...</p>
     </div>
     
-    <!-- CORRECTED: More reliable JavaScript initialization -->
     <script>
+        // This wrapper waits for the page to be fully loaded before running the script.
+        // This is the key to fixing the buttons.
         document.addEventListener('DOMContentLoaded', function () {
             const receiptForm = document.getElementById('receiptForm');
+            
+            // Only run this code if the main form exists (i.e., user is logged in)
             if (receiptForm) {
                 const scanTicketBtn = document.getElementById('scanTicketBtn');
                 const ticketImageInput = document.getElementById('ticket_image');
@@ -66,14 +80,12 @@
                 const fightBtn = document.getElementById('fightBtn');
                 const ticketNumberInput = document.getElementById('ticket_number');
 
-                // This makes the "Scan with Camera" button work
                 if (scanTicketBtn && ticketImageInput) {
                     scanTicketBtn.addEventListener('click', () => {
                         ticketImageInput.click();
                     });
                 }
 
-                // This handles the image after it's selected
                 if (ticketImageInput) {
                     ticketImageInput.addEventListener('change', event => {
                         const file = event.target.files[0];
@@ -81,14 +93,15 @@
                             const formData = new FormData();
                             formData.append('ticket_image', file);
                             ocrStatus.style.display = 'none';
-                            scanningOverlay.style.display = 'flex';
+                            scanningOverlay.classList.add('visible');
+                            
                             fetch("{{ url_for('scan_ticket') }}", {
                                     method: 'POST',
                                     body: formData
                                 })
                                 .then(res => res.json())
                                 .then(data => {
-                                    scanningOverlay.style.display = 'none';
+                                    scanningOverlay.classList.remove('visible');
                                     ocrStatus.style.display = 'block';
                                     if (data.success) {
                                         document.getElementById('ticket_number').value = data.ticket_number || '';
@@ -100,7 +113,7 @@
                                         ocrStatus.textContent = '❌ OCR failed: ' + (data.message || 'Could not extract information.');
                                     }
                                 }).catch(err => {
-                                    scanningOverlay.style.display = 'none';
+                                    scanningOverlay.classList.remove('visible');
                                     ocrStatus.style.display = 'block';
                                     ocrStatus.textContent = 'Error during scan.';
                                 });
@@ -108,7 +121,6 @@
                     });
                 }
 
-                // This makes the "Fight Ticket" button work
                 if (fightBtn && ticketNumberInput) {
                     fightBtn.addEventListener('click', () => {
                         const ticketNumber = ticketNumberInput.value;
