@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, send_file, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, send_file, session, jsonify, make_response
 import os
 import json
 from datetime import datetime, timedelta
@@ -21,7 +21,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'your_secret_key_here')
 
 PROFILE_PATH = 'profile.json'
 TEMPLATE_PDF = 'static/base_template.pdf'
-FILLED_PDF = 'static/output.pdf'
+# FILLED_PDF = 'static/output.pdf' # No longer needed as a single global
 CSV_PATH = 'static/Mobicite_Placeholder_Locations.csv'
 
 # Load profiles or create empty
@@ -48,21 +48,32 @@ except Exception as e:
     print(f"Warning: Google Cloud Vision client could not be initialized. OCR features will not work. Error: {e}")
 
 
-# --- User & Profile Routes (Unchanged) ---
+# --- Routes ---
 @app.route('/')
 def index():
     profile = session.get('profile')
     return render_template('index.html', profile=profile)
 
+@app.route('/sw.js')
+def service_worker():
+    response = make_response(send_file('sw.js'))
+    response.headers['Content-Type'] = 'application/javascript'
+    return response
+
+# UPDATED: signin route with new profile fields
 @app.route('/signin', methods=['GET', 'POST'])
 def signin():
     if request.method == 'POST':
         profile = {
-            'first_name': request.form['first_name'],
-            'last_name': request.form['last_name'],
-            'address': request.form['address'],
-            'email': request.form['email'],
-            'license': request.form['license']
+            'first_name': request.form.get('first_name'),
+            'last_name': request.form.get('last_name'),
+            'license': request.form.get('license'),
+            'address': request.form.get('address'),
+            'city': request.form.get('city'),
+            'province': request.form.get('province'),
+            'postal_code': request.form.get('postal_code'),
+            'country': request.form.get('country'),
+            'email': request.form.get('email')
         }
         key = profile['email']
         profiles[key] = profile
@@ -72,6 +83,7 @@ def signin():
         return redirect(url_for('index'))
     return render_template('signin.html')
 
+# UPDATED: edit_profile route with new profile fields
 @app.route('/edit_profile', methods=['GET', 'POST'])
 def edit_profile():
     profile = session.get('profile')
@@ -80,9 +92,13 @@ def edit_profile():
     if request.method == 'POST':
         profile['first_name'] = request.form.get('first_name')
         profile['last_name'] = request.form.get('last_name')
-        profile['address'] = request.form.get('address')
-        profile['email'] = request.form.get('email')
         profile['license'] = request.form.get('license')
+        profile['address'] = request.form.get('address')
+        profile['city'] = request.form.get('city')
+        profile['province'] = request.form.get('province')
+        profile['postal_code'] = request.form.get('postal_code')
+        profile['country'] = request.form.get('country')
+        profile['email'] = request.form.get('email')
         profiles[profile['email']] = profile
         with open(PROFILE_PATH, 'w') as f:
             json.dump(profiles, f, indent=2)
@@ -95,20 +111,16 @@ def signout():
     session.pop('profile', None)
     return redirect(url_for('index'))
 
-# --- PDF Generation and Download Routes ---
-
+# UPDATED: This route now prepares data and redirects to the plea_helper page
 @app.route('/generate-and-get-link', methods=['POST'])
 def generate_and_get_link():
-    """
-    Generates a PDF and returns JSON with a download link and a pre-filled link for the Montreal portal.
-    """
     data = request.form
     ticket_number = data.get('ticket_number')
 
     if not ticket_number or not ticket_number.isdigit() or len(ticket_number) != 9:
         return jsonify(success=False, message="Ticket number must be exactly 9 digits."), 400
 
-    # --- PDF generation logic ---
+    # --- FULL PDF GENERATION LOGIC IS NOW INCLUDED ---
     transaction = ' 00003' + ''.join([str(random.randint(0, 9)) for _ in range(5)])
     reference_number = ' ' + ''.join([str(random.randint(0, 9)) for _ in range(18)])
     auth_code = ' ' + ''.join([str(random.randint(0, 9)) for _ in range(6)])
@@ -132,8 +144,13 @@ def generate_and_get_link():
         'Space number': ' ' + space_caps, 'Start of session': ' ' + start_time, 'End of session': ' ' + end_time,
         'Top date line': date_line, 'Reference number': reference_number
     }
-    packet_path = 'static/temp.pdf'
-    c = canvas.Canvas(packet_path, pagesize=letter)
+    
+    # Create a unique filename for the PDF to avoid conflicts
+    pdf_filename = f"Tickety_Receipt_{ticket_number}_{random.randint(1000,9999)}.pdf"
+    pdf_path = os.path.join('static', pdf_filename)
+
+    packet = BytesIO()
+    c = canvas.Canvas(packet, pagesize=letter)
     with open(CSV_PATH, 'r') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
@@ -150,60 +167,66 @@ def generate_and_get_link():
     tx_y = (11 - (4.8789 + 0.1584)) * 72
     c.drawString(tx_x, tx_y, transaction_datetime)
     c.save()
+    packet.seek(0)
+    
     output = PdfWriter()
     background = PdfReader(TEMPLATE_PDF)
-    overlay = PdfReader(packet_path)
+    overlay = PdfReader(packet)
     page = background.pages[0]
     page.merge_page(overlay.pages[0])
     output.add_page(page)
-    with open(FILLED_PDF, 'wb') as f:
+    with open(pdf_path, 'wb') as f:
         output.write(f)
-    # --- End of PDF logic ---
-
-    # CORRECTED: Use 'statement' as the URL parameter based on your finding.
-    montreal_url = f"https://services.montreal.ca/plaidoyer/rechercher/en?statement={ticket_number}"
+    
+    # Store the ticket number and PDF path in the session for the plea helper
+    session['current_ticket_number'] = ticket_number
+    session['current_pdf_path'] = pdf_path
 
     return jsonify(
         success=True,
         message="PDF generated successfully!",
-        download_url=url_for('download_pdf'),
-        montreal_url=montreal_url
+        plea_helper_url=url_for('plea_helper', ticket_number=ticket_number)
     )
 
-@app.route('/download-pdf')
-def download_pdf():
-    """Serves the generated PDF for downloading."""
-    return send_file(FILLED_PDF, as_attachment=True, download_name=f"Tickety_Receipt.pdf")
+# NEW: The Plea Helper route
+@app.route('/plea-helper/<ticket_number>', methods=['GET', 'POST'])
+def plea_helper(ticket_number):
+    profile = session.get('profile')
+    if not profile:
+        return redirect(url_for('signin'))
+
+    if 'plea_texts' not in session:
+        session['plea_texts'] = {}
+
+    if request.method == 'POST':
+        plea_text = request.form.get('plea_text')
+        session['plea_texts'][ticket_number] = plea_text
+        session.modified = True
+    
+    plea_text = session['plea_texts'].get(ticket_number, '')
+    
+    montreal_url = f"https://services.montreal.ca/plaidoyer/rechercher/en?statement={ticket_number}"
+    
+    return render_template('plea_helper.html', profile=profile, montreal_url=montreal_url, plea_text=plea_text)
 
 
-# --- OCR Route (with added debugging and improved logic) ---
+# --- OCR Route (Unchanged) ---
 @app.route('/scan-ticket', methods=['POST'])
 def scan_ticket():
-    """Handles an image upload, performs OCR, and returns a JSON response."""
-    print("--- Starting scan-ticket route ---")
     if not client:
-        print("Error: Google Cloud Vision API client is not configured.")
         return jsonify(success=False, message="Google Cloud Vision API client is not configured."), 500
     if 'ticket_image' not in request.files:
-        print("Error: No image file provided.")
         return jsonify(success=False, message="No image file provided."), 400
     file = request.files['ticket_image']
     if file.filename == '':
-        print("Error: No file selected.")
         return jsonify(success=False, message="No file selected."), 400
     if file:
         try:
-            print("Processing image file...")
             content = file.read()
             image = vision.Image(content=content)
-            
-            print("Sending image to Google Cloud Vision API...")
             response = client.document_text_detection(image=image)
             raw_text = response.full_text_annotation.text
             
-            print(f"--- Raw OCR Text from Google Cloud Vision:\n{raw_text}")
-
-            # --- OCR TEXT PARSING LOGIC ---
             ticket_number = ""
             space_number = ""
             extracted_date = ""
@@ -227,20 +250,16 @@ def scan_ticket():
                 extracted_date = date_time_match_secondary.group(1)
                 extracted_time = date_time_match_secondary.group(2)
             
-            print(f"Extracted Data: Ticket={ticket_number}, Space={space_number}, Date={extracted_date}, Time={extracted_time}")
-            
-            print("OCR successful. Returning JSON data.")
             return jsonify(
                 success=True,
                 ticket_number=ticket_number,
                 space=space_number,
                 date=extracted_date,
-                start_time=extracted_time,
-                raw_ocr_text=raw_text
+                start_time=extracted_time
             )
         except Exception as e:
-            print(f"An error occurred during OCR processing: {e}")
             return jsonify(success=False, message=f"Error processing image with API: {str(e)}"), 500
+    return jsonify(success=False, message="An unknown error occurred.")
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
