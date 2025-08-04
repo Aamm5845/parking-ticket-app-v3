@@ -18,11 +18,15 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'a_very_secret_key_for_development')
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 
-PROFILE_PATH = 'profile.json'
+# NEW: Use Render's persistent disk for data storage
+# The 'RENDER_DISK_PATH' is automatically set by Render. We fall back to the current directory for local testing.
+DATA_DIR = os.environ.get('RENDER_DISK_PATH', '.')
+PROFILE_PATH = os.path.join(DATA_DIR, 'profile.json')
+
 CSV_PATH = 'static/Mobicite_Placeholder_Locations.csv'
 TEMPLATE_PDF = 'static/base_template.pdf'
 
-# Load profiles or create empty
+# Load profiles from the persistent disk
 if os.path.exists(PROFILE_PATH):
     with open(PROFILE_PATH, 'r') as f:
         try:
@@ -31,6 +35,10 @@ if os.path.exists(PROFILE_PATH):
             profiles = {}
 else:
     profiles = {}
+
+# (The rest of the app.py code is the same as the last full version)
+# ...
+
 
 # Initialize Google Cloud Vision client
 try:
