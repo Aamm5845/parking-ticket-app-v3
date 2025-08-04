@@ -20,7 +20,6 @@
                 <div class="profile-initials">{{ profile.first_name[0] }}{{ profile.last_name[0] }}</div>
                 <div class="profile-dropdown">
                     <div class="dropdown-header">{{ profile.first_name }} {{ profile.last_name }}</div>
-                    <!-- UPDATED: Points to the new setup page -->
                     <a href="{{ url_for('setup_profile') }}"><span class="material-icons">edit</span> Edit Profile</a>
                 </div>
             </div>
@@ -54,8 +53,74 @@
         <img src="{{ url_for('static', filename='Material wave loading.gif') }}" alt="Scanning...">
         <p>Scanning ticket...</p>
     </div>
+    
+    <!-- CORRECTED: More reliable JavaScript initialization -->
     <script>
-        // (Your existing JavaScript for OCR and the Fight Ticket button goes here)
+        document.addEventListener('DOMContentLoaded', function () {
+            const receiptForm = document.getElementById('receiptForm');
+            if (receiptForm) {
+                const scanTicketBtn = document.getElementById('scanTicketBtn');
+                const ticketImageInput = document.getElementById('ticket_image');
+                const scanningOverlay = document.getElementById('scanning_overlay');
+                const ocrStatus = document.getElementById('ocr_results');
+                const fightBtn = document.getElementById('fightBtn');
+                const ticketNumberInput = document.getElementById('ticket_number');
+
+                // This makes the "Scan with Camera" button work
+                if (scanTicketBtn && ticketImageInput) {
+                    scanTicketBtn.addEventListener('click', () => {
+                        ticketImageInput.click();
+                    });
+                }
+
+                // This handles the image after it's selected
+                if (ticketImageInput) {
+                    ticketImageInput.addEventListener('change', event => {
+                        const file = event.target.files[0];
+                        if (file) {
+                            const formData = new FormData();
+                            formData.append('ticket_image', file);
+                            ocrStatus.style.display = 'none';
+                            scanningOverlay.style.display = 'flex';
+                            fetch("{{ url_for('scan_ticket') }}", {
+                                    method: 'POST',
+                                    body: formData
+                                })
+                                .then(res => res.json())
+                                .then(data => {
+                                    scanningOverlay.style.display = 'none';
+                                    ocrStatus.style.display = 'block';
+                                    if (data.success) {
+                                        document.getElementById('ticket_number').value = data.ticket_number || '';
+                                        document.getElementById('space').value = data.space || '';
+                                        document.getElementById('date').value = data.date || '';
+                                        document.getElementById('start_time').value = data.start_time || '';
+                                        ocrStatus.textContent = '✅ Ticket scanned successfully!';
+                                    } else {
+                                        ocrStatus.textContent = '❌ OCR failed: ' + (data.message || 'Could not extract information.');
+                                    }
+                                }).catch(err => {
+                                    scanningOverlay.style.display = 'none';
+                                    ocrStatus.style.display = 'block';
+                                    ocrStatus.textContent = 'Error during scan.';
+                                });
+                        }
+                    });
+                }
+
+                // This makes the "Fight Ticket" button work
+                if (fightBtn && ticketNumberInput) {
+                    fightBtn.addEventListener('click', () => {
+                        const ticketNumber = ticketNumberInput.value;
+                        if (ticketNumber && ticketNumber.length === 9) {
+                            window.location.href = `/plea-helper?ticket_number=${ticketNumber}`;
+                        } else {
+                            alert('Please enter a valid 9-digit ticket number first.');
+                        }
+                    });
+                }
+            }
+        });
     </script>
     <script>
         if ('serviceWorker' in navigator) {
