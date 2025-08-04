@@ -59,7 +59,7 @@
                     <div id="ocr_results" class="ocr-status"></div>
                     <div id="form_actions">
                         <button type="submit" class="btn btn-primary" id="generateBtn">
-                            <span class="material-icons">gavel</span> Prepare to Fight Ticket
+                            <span class="material-icons">picture_as_pdf</span> Generate PDF
                         </button>
                     </div>
                 </form>
@@ -70,7 +70,8 @@
                     <img src="{{ url_for('static', filename='logo.png') }}" alt="Tickety Logo" class="signin-logo">
                 </div>
                 <p>Your digital ticket manager.</p>
-                <a href="{{ url_for('signin') }}" class="btn btn-primary">Sign In to Continue</a>
+                <a href="{{ url_for('login') }}" class="btn btn-primary">Log In</a>
+                <p class="auth-switch" style="margin-top:1rem;">Don't have an account? <a href="{{ url_for('signup') }}">Sign Up</a></p>
             </div>
             {% endif %}
         </main>
@@ -84,6 +85,7 @@
             const receiptForm = document.getElementById('receiptForm');
             const ocrStatus = document.getElementById('ocr_results');
             const generateBtn = document.getElementById('generateBtn');
+            const formActions = document.getElementById('form_actions');
             const scanTicketBtn = document.getElementById('scanTicketBtn');
             const ticketImageInput = document.getElementById('ticket_image');
             const scanningOverlay = document.getElementById('scanning_overlay');
@@ -122,7 +124,7 @@
             receiptForm.addEventListener('submit', event => {
                 event.preventDefault(); 
                 ocrStatus.style.display = 'block';
-                ocrStatus.textContent = 'Generating...';
+                ocrStatus.textContent = 'Generating PDF...';
                 generateBtn.disabled = true;
 
                 const formData = new FormData(receiptForm);
@@ -131,8 +133,24 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        // Redirect to the new plea helper page
-                        window.location.href = data.plea_helper_url;
+                        ocrStatus.textContent = '✅ PDF is downloading...';
+                        
+                        // Automatic Download
+                        const downloadLink = document.createElement('a');
+                        downloadLink.href = data.download_url;
+                        document.body.appendChild(downloadLink);
+                        downloadLink.click();
+                        document.body.removeChild(downloadLink);
+
+                        // Hide Generate button and show Fight Ticket button
+                        generateBtn.style.display = 'none';
+                        
+                        const fightBtn = document.createElement('a');
+                        fightBtn.href = data.plea_helper_url;
+                        fightBtn.className = 'btn btn-success';
+                        fightBtn.innerHTML = '<span class="material-icons">gavel</span> Fight Ticket';
+                        formActions.appendChild(fightBtn);
+
                     } else {
                         ocrStatus.textContent = '❌ Error: ' + (data.message || 'Could not generate.');
                         generateBtn.disabled = false;
