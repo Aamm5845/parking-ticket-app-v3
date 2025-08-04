@@ -85,7 +85,6 @@
             const receiptForm = document.getElementById('receiptForm');
             const ocrStatus = document.getElementById('ocr_results');
             const generateBtn = document.getElementById('generateBtn');
-            const formActions = document.getElementById('form_actions');
             const scanTicketBtn = document.getElementById('scanTicketBtn');
             const ticketImageInput = document.getElementById('ticket_image');
             const scanningOverlay = document.getElementById('scanning_overlay');
@@ -133,26 +132,10 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        ocrStatus.textContent = '✅ PDF is downloading...';
-                        
-                        // Automatic Download
-                        const downloadLink = document.createElement('a');
-                        downloadLink.href = data.download_url;
-                        document.body.appendChild(downloadLink);
-                        downloadLink.click();
-                        document.body.removeChild(downloadLink);
-
-                        // Hide Generate button and show Fight Ticket button
-                        generateBtn.style.display = 'none';
-                        
-                        const fightBtn = document.createElement('a');
-                        fightBtn.href = data.plea_helper_url;
-                        fightBtn.className = 'btn btn-success';
-                        fightBtn.innerHTML = '<span class="material-icons">gavel</span> Fight Ticket';
-                        formActions.appendChild(fightBtn);
-
+                        // On success, redirect to the new plea helper page
+                        window.location.href = data.plea_helper_url;
                     } else {
-                        ocrStatus.textContent = '❌ Error: ' + (data.message || 'Could not generate.');
+                        ocrStatus.textContent = '❌ Error: ' + (data.message || 'Could not generate PDF.');
                         generateBtn.disabled = false;
                     }
                 })
