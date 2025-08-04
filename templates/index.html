@@ -58,7 +58,6 @@
                     </div>
                     <div id="ocr_results" class="ocr-status"></div>
                     <div id="form_actions">
-                        <!-- UPDATED: Button text changed -->
                         <button type="submit" class="btn btn-primary" id="generateBtn">
                             <span class="material-icons">gavel</span> Prepare to Fight Ticket
                         </button>
@@ -132,7 +131,7 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        // UPDATED: Redirect to the new plea helper page
+                        // Redirect to the new plea helper page
                         window.location.href = data.plea_helper_url;
                     } else {
                         ocrStatus.textContent = '❌ Error: ' + (data.message || 'Could not generate.');
@@ -155,3 +154,5 @@
     </script>
 </body>
 </html>
+
+
