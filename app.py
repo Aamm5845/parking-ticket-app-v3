@@ -82,7 +82,8 @@ def signup():
             'email': email, 'password_hash': password_hash
         }
         profiles[email] = new_user
-        with open(PROFILE_PATH, 'w') as f: json.dump(profiles, f, indent=2)
+        with open(PROFILE_PATH, 'w') as f:
+            json.dump(profiles, f, indent=2)
         session.permanent = True
         session['user_email'] = email
         return redirect(url_for('index'))
@@ -124,7 +125,8 @@ def edit_profile():
         profile['postal_code'] = request.form.get('postal_code', profile.get('postal_code'))
         profile['country'] = request.form.get('country', profile.get('country'))
         profiles[user_email] = profile
-        with open(PROFILE_PATH, 'w') as f: json.dump(profiles, f, indent=2)
+        with open(PROFILE_PATH, 'w') as f:
+            json.dump(profiles, f, indent=2)
         flash('Profile updated successfully!')
         return redirect(url_for('index'))
     return render_template('edit_profile.html', profile=profile)
@@ -146,6 +148,9 @@ def generate_pdf():
     space_caps = ''.join([char.upper() if char.isalpha() else char for char in space_cleaned])
     date_str = data.get('date')
     time_str = data.get('start_time')
+    if not date_str or not time_str:
+        return "Date and Start Time are required.", 400
+    
     date_obj = datetime.strptime(date_str + ' ' + time_str, '%Y-%m-%d %H:%M')
     offset_minutes = random.randint(1, 2)
     adjusted_date_obj = date_obj + timedelta(minutes=offset_minutes)
@@ -153,6 +158,7 @@ def generate_pdf():
     end_time = (adjusted_date_obj + timedelta(minutes=10)).strftime('%Y-%m-%d, %H:%M')
     date_line = f" {adjusted_date_obj.strftime('%a, %b %d, %Y at %I:%M %p')}"
     transaction_datetime = ' ' + adjusted_date_obj.strftime('%Y-%m-%d, %H:%M')
+
     values = {
         'Transaction number': transaction, 'Authorization code': auth_code, 'Response code': response_code,
         'Space number': ' ' + space_caps, 'Start of session': ' ' + start_time, 'End of session': ' ' + end_time,
