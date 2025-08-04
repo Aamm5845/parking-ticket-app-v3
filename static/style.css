@@ -287,3 +287,14 @@ form > p {
     font-size: 1.2rem;
     font-weight: 500;
 }
+/* --- NEW: Logo Image Styles --- */
+.header-logo {
+  height: 36px; /* Controls the height of the logo in the top bar */
+  width: auto;
+}
+
+.signin-logo {
+  max-width: 220px; /* Controls the size of the logo on the sign-in screen */
+  height: auto;
+  margin-bottom: 0.5rem; /* Reduced margin for better balance */
+}
