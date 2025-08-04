@@ -48,7 +48,6 @@ except Exception as e:
 # --- Core App Routes ---
 @app.route('/')
 def index():
-    # If profile exists, show the main app. Otherwise, force profile creation.
     profile = profile_data.get('user_profile')
     if not profile:
         return redirect(url_for('setup_profile'))
@@ -64,7 +63,6 @@ def service_worker():
 @app.route('/setup_profile', methods=['GET', 'POST'])
 def setup_profile():
     if request.method == 'POST':
-        # Save all the form data into a single profile object
         profile_data['user_profile'] = {
             'first_name': request.form.get('first_name', ''), 'last_name': request.form.get('last_name', ''),
             'license': request.form.get('license', ''), 'address': request.form.get('address', ''),
@@ -72,20 +70,16 @@ def setup_profile():
             'postal_code': request.form.get('postal_code', ''), 'country': request.form.get('country', 'Canada'),
             'email': request.form.get('email', '')
         }
-        # Write the updated data to the file
         with open(PROFILE_PATH, 'w') as f:
             json.dump(profile_data, f, indent=2)
-        
         return redirect(url_for('index'))
     
-    # For GET request, show the form pre-filled with existing data if it exists
     existing_profile = profile_data.get('user_profile', {})
     return render_template('profile_setup.html', profile=existing_profile)
 
 # --- PDF AND PLEA HELPER ROUTES ---
 @app.route('/generate_pdf', methods=['POST'])
 def generate_pdf():
-    # This function remains the same as the last correct version
     data = request.form
     ticket_number = data.get('ticket_number')
     if not ticket_number or not ticket_number.isdigit() or len(ticket_number) != 9:
@@ -157,11 +151,45 @@ def plea_helper():
     plea_text = "I plead not guilty. The parking meter was paid for the entire duration that my vehicle was parked at this location."
     return render_template('plea_helper.html', profile=profile, montreal_url=montreal_url, plea_text=plea_text, ticket_number=ticket_number)
 
+# CORRECTED: Full OCR scanning logic is restored here
 @app.route('/scan-ticket', methods=['POST'])
 def scan_ticket():
-    # (Your full OCR logic here...)
-    return jsonify(success=True) # Placeholder
+    if not client:
+        return jsonify(success=False, message="OCR client not configured."), 500
+    if 'ticket_image' not in request.files:
+        return jsonify(success=False, message="No image file provided."), 400
+    file = request.files['ticket_image']
+    if file.filename == '':
+        return jsonify(success=False, message="No file selected."), 400
+    try:
+        content = file.read()
+        image = vision.Image(content=content)
+        response = client.document_text_detection(image=image)
+        raw_text = response.full_text_annotation.text
+        
+        ticket_number, space_number, extracted_date, extracted_time = "", "", "", ""
 
+        ticket_match = re.search(r'\b(\d{3})\s*(\d{3})\s*(\d{3})\b', raw_text)
+        if ticket_match:
+            ticket_number = "".join(ticket_match.groups())
+        
+        space_match = re.search(r'(PL\d+)', raw_text, re.IGNORECASE)
+        if space_match:
+            space_number = space_match.group(1).upper()
+        
+        date_time_match = re.search(r'au\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})', raw_text, re.IGNORECASE) or \
+                          re.search(r'Date\s+de\s+signification:\s*(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})', raw_text, re.IGNORECASE)
+        
+        if date_time_match:
+            extracted_date, extracted_time = date_time_match.groups()
+        
+        return jsonify(
+            success=True, ticket_number=ticket_number, space=space_number,
+            date=extracted_date, start_time=extracted_time
+        )
+    except Exception as e:
+        return jsonify(success=False, message=f"Error processing image: {str(e)}"), 500
+
+# --- Main Execution ---
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
