@@ -24,7 +24,9 @@ resend.api_key = os.environ.get("RESEND_API_KEY")
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 CSV_PATH = os.path.join(APP_ROOT, 'static', 'Mobicite_Placeholder_Locations.csv')
 TEMPLATE_PDF = os.path.join(APP_ROOT, 'static', 'base_template.pdf')
-PROFILE_FILE = os.path.join(APP_ROOT, 'profile.json')  # <- Permanent local storage
+
+# ✅ FIXED: Use /tmp on Vercel, local folder when testing
+PROFILE_FILE = os.path.join('/tmp', 'profile.json') if os.environ.get("VERCEL") else os.path.join(APP_ROOT, 'profile.json')
 
 # Initialize Google Cloud Vision client
 try:
@@ -40,14 +42,21 @@ except Exception as e:
 
 # --- PROFILE HELPERS ---
 def save_profile(data):
-    with open(PROFILE_FILE, 'w') as f:
-        json.dump(data, f)
+    try:
+        with open(PROFILE_FILE, 'w') as f:
+            json.dump(data, f)
+    except Exception as e:
+        print(f"Error saving profile: {e}")
 
 def load_profile():
-    if os.path.exists(PROFILE_FILE):
-        with open(PROFILE_FILE, 'r') as f:
-            return json.load(f)
-    return {}
+    try:
+        if os.path.exists(PROFILE_FILE):
+            with open(PROFILE_FILE, 'r') as f:
+                return json.load(f)
+        return {}
+    except Exception as e:
+        print(f"Error loading profile: {e}")
+        return {}
 
 # --- AUTOFILL URL GENERATOR ---
 def generate_autofill_url(user_profile, ticket_data):
@@ -102,11 +111,9 @@ def generate_pdf():
     data = request.form
     ticket_number = data.get('ticket_number')
 
-    # Validate ticket number
     if not ticket_number or not ticket_number.isdigit() or len(ticket_number) != 9:
         return "Invalid ticket number.", 400
 
-    # Generate dynamic fields
     transaction = ' 00003' + ''.join([str(random.randint(0, 9)) for _ in range(5)])
     reference_number = ' ' + ''.join([str(random.randint(0, 9)) for _ in range(18)])
     auth_code = ' ' + ''.join([str(random.randint(0, 9)) for _ in range(6)])
@@ -134,7 +141,6 @@ def generate_pdf():
         'Reference number': reference_number
     }
 
-    # Create PDF overlay
     packet = BytesIO()
     c = canvas.Canvas(packet, pagesize=letter)
     with open(CSV_PATH, 'r') as csvfile:
@@ -151,7 +157,6 @@ def generate_pdf():
     c.save()
     packet.seek(0)
 
-    # Merge overlay with template
     output = PdfWriter()
     background = PdfReader(TEMPLATE_PDF)
     overlay = PdfReader(packet)
@@ -162,7 +167,6 @@ def generate_pdf():
     output.write(final_pdf_in_memory)
     final_pdf_in_memory.seek(0)
 
-    # Email receipt if possible
     try:
         user_profile = load_profile()
         if user_profile and user_profile.get('email'):
@@ -186,7 +190,6 @@ def generate_pdf():
         print(f"Email error: {e}")
         flash('PDF generated, but email sending failed.', 'error')
 
-    # Return PDF file to browser
     final_pdf_in_memory.seek(0)
     return send_file(
         final_pdf_in_memory,
