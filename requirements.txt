@@ -2,8 +2,7 @@ Flask
 PyPDF2
 reportlab
 google-cloud-vision
-google-oauth2-service-account
+google-auth
 gunicorn
-Flask-Login
 vercel-kv
 resend
