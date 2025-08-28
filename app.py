@@ -1,8 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, send_file, jsonify, make_response, flash
 from vercel_kv import KV
 import os
-
-kv = KV() # Create a usable connection to the KV database
 import json
 from datetime import datetime, timedelta
 import random
@@ -14,18 +12,22 @@ import re
 from io import BytesIO
 from google.cloud import vision
 from google.oauth2 import service_account
-import resend # NEW: Import the resend library
+import resend
 
+# --- APP & EXTENSIONS SETUP ---
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'a_very_secret_key_for_development')
+kv = KV() # Create a usable connection to the KV database
 
-# NEW: Configure Resend for Emails
+# Configure Resend for Emails
 resend.api_key = os.environ.get("RESEND_API_KEY")
 
-CSV_PATH = 'static/Mobicite_Placeholder_Locations.csv'
-TEMPLATE_PDF = 'static/base_template.pdf'
+# Build absolute paths for static files to ensure they are found on Vercel
+APP_ROOT = os.path.dirname(os.path.abspath(__file__))
+CSV_PATH = os.path.join(APP_ROOT, 'static', 'Mobicite_Placeholder_Locations.csv')
+TEMPLATE_PDF = os.path.join(APP_ROOT, 'static', 'base_template.pdf')
 
-# ... (The Google Vision client setup code remains the same) ...
+# Initialize Google Cloud Vision client
 try:
     credentials_json = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS_JSON')
     if credentials_json:
@@ -38,18 +40,13 @@ except Exception as e:
     print(f"Warning: Google Cloud Vision client could not be initialized. Error: {e}")
 
 
-# --- Helper Function for Autofill Link (NEW) ---
+# --- Helper Function for Autofill Link ---
 def generate_autofill_url(user_profile, ticket_data):
-    # This function builds the special link for the email.
-    # We will update the field names like "first_name", "statement", etc.,
-    # after we inspect the Montreal plea website together.
     import urllib.parse
     base_url = "https://services.montreal.ca/plaidoyer/rechercher/en"
     plea_text = "I plead not guilty. The parking meter was paid for the entire duration that my vehicle was parked at this location."
-
     params = {
         "statement": ticket_data.get('ticket_number', ''),
-        # --- THESE ARE PLACEHOLDERS! We will update them later. ---
         "first_name": user_profile.get('first_name', ''),
         "last_name": user_profile.get('last_name', ''),
         "address": user_profile.get('address', ''),
@@ -67,7 +64,6 @@ def index():
         return redirect(url_for('setup_profile'))
     return render_template('index.html', profile=profile)
 
-# ... (sw.js and setup_profile routes remain the same) ...
 @app.route('/sw.js')
 def service_worker():
     response = make_response(send_file('sw.js'))
@@ -93,7 +89,6 @@ def setup_profile():
 # --- PDF AND PLEA HELPER ROUTES ---
 @app.route('/generate_pdf', methods=['POST'])
 def generate_pdf():
-    # ... (The PDF generation logic remains the same) ...
     data = request.form
     ticket_number = data.get('ticket_number')
     if not ticket_number or not ticket_number.isdigit() or len(ticket_number) != 9:
@@ -150,14 +145,14 @@ def generate_pdf():
     output.write(final_pdf_in_memory)
     final_pdf_in_memory.seek(0)
     
-    # --- NEW: SEND EMAIL WITH PDF ATTACHMENT ---
+    # --- SEND EMAIL WITH PDF ATTACHMENT ---
     try:
         user_profile = kv.get('user_profile')
         if user_profile and user_profile.get('email'):
             autofill_url = generate_autofill_url(user_profile, data)
 
             email_params = {
-                "from": "Tickety <onboarding@resend.dev>", # IMPORTANT: Change this after you verify a domain in Resend
+                "from": "Tickety <onboarding@resend.dev>",
                 "to": [user_profile['email']],
                 "subject": f"Your Parking Receipt for Ticket #{ticket_number}",
                 "html": f"""
@@ -176,11 +171,10 @@ def generate_pdf():
             }
             resend.Emails.send(email_params)
     except Exception as e:
-        print(f"Error sending email: {e}") # Log the error to Vercel's console
-        # We don't stop the user from getting their PDF even if the email fails
+        print(f"Error sending email: {e}")
         flash('PDF generated, but there was an error sending the email.', 'error')
 
-    final_pdf_in_memory.seek(0) # Rewind the in-memory file before sending
+    final_pdf_in_memory.seek(0)
     return send_file(
         final_pdf_in_memory,
         as_attachment=True,
