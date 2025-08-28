@@ -17,15 +17,14 @@ import resend
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'a_very_secret_key_for_development')
 
-# Configure Resend for Emails
-resend.api_key = os.environ.get("RESEND_API_KEY")
+# ✅ Use your Resend API key directly for now
+resend.api_key = "re_BwoVKKYd_AFWBHd9394WaigNy1nogTqXv"
 
 # File paths
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 CSV_PATH = os.path.join(APP_ROOT, 'static', 'Mobicite_Placeholder_Locations.csv')
 TEMPLATE_PDF = os.path.join(APP_ROOT, 'static', 'base_template.pdf')
 
-# ✅ FIXED: Use /tmp on Vercel, local folder when testing
 PROFILE_FILE = os.path.join('/tmp', 'profile.json') if os.environ.get("VERCEL") else os.path.join(APP_ROOT, 'profile.json')
 
 # Initialize Google Cloud Vision client
@@ -168,12 +167,11 @@ def generate_pdf():
     output.write(final_pdf_in_memory)
     final_pdf_in_memory.seek(0)
 
-    # --- ALWAYS SEND EMAIL WITH PDF + BUTTON ---
+    # Send email with PDF
     try:
         user_profile = load_profile()
         if user_profile and user_profile.get('email'):
             autofill_url = generate_autofill_url(user_profile, data)
-
             email_params = {
                 "from": "Tickety <onboarding@resend.dev>",
                 "to": [user_profile['email']],
@@ -205,7 +203,7 @@ def generate_pdf():
         print(f"Email error: {e}")
         flash('PDF generated, but email sending failed.', 'error')
 
-    # Always return PDF to download too
+    # Always return PDF for download
     final_pdf_in_memory.seek(0)
     return send_file(
         final_pdf_in_memory,
@@ -213,16 +211,6 @@ def generate_pdf():
         download_name=f'Tickety_Receipt_{ticket_number}.pdf',
         mimetype='application/pdf'
     )
-
-@app.route('/plea-helper')
-def plea_helper():
-    profile = load_profile()
-    if not profile:
-        return redirect(url_for('setup_profile'))
-    ticket_number = request.args.get('ticket_number', '')
-    montreal_url = f"https://services.montreal.ca/plaidoyer/rechercher/en?statement={ticket_number}"
-    plea_text = "I plead not guilty. The parking meter was paid for the entire duration that my vehicle was parked at this location."
-    return render_template('plea_helper.html', profile=profile, montreal_url=montreal_url, plea_text=plea_text, ticket_number=ticket_number)
 
 @app.route('/scan-ticket', methods=['POST'])
 def scan_ticket():
@@ -258,12 +246,6 @@ def scan_ticket():
     except Exception as e:
         return jsonify(success=False, message=f"Error processing image: {str(e)}"), 500
 
-@app.route('/test-env')
-def test_env():
-    test_value = os.environ.get("TEST_VAR", "---VARIABLE NOT FOUND---")
-    return f"<h1>The value of TEST_VAR is: {test_value}</h1>"
-
-# --- MAIN ---
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
