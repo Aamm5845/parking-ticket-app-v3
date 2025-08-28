@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, send_file, jsonify, make_response, flash
-from vercel_kv import KV as kv
+from vercel_kv import KV
 import os
+
+kv = KV() # Create a usable connection to the KV database
 import json
 from datetime import datetime, timedelta
 import random
