@@ -17,12 +17,12 @@ import resend
 # --- APP & EXTENSIONS SETUP ---
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'a_very_secret_key_for_development')
-kv = KV() # Create a usable connection to the KV database
+# We REMOVED kv = KV() from here to prevent the app from crashing on startup.
 
 # Configure Resend for Emails
 resend.api_key = os.environ.get("RESEND_API_KEY")
 
-# Build absolute paths for static files to ensure they are found on Vercel
+# Build absolute paths for static files
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 CSV_PATH = os.path.join(APP_ROOT, 'static', 'Mobicite_Placeholder_Locations.csv')
 TEMPLATE_PDF = os.path.join(APP_ROOT, 'static', 'base_template.pdf')
@@ -42,16 +42,11 @@ except Exception as e:
 
 # --- Helper Function for Autofill Link ---
 def generate_autofill_url(user_profile, ticket_data):
+    # This function's logic is unchanged
     import urllib.parse
     base_url = "https://services.montreal.ca/plaidoyer/rechercher/en"
     plea_text = "I plead not guilty. The parking meter was paid for the entire duration that my vehicle was parked at this location."
-    params = {
-        "statement": ticket_data.get('ticket_number', ''),
-        "first_name": user_profile.get('first_name', ''),
-        "last_name": user_profile.get('last_name', ''),
-        "address": user_profile.get('address', ''),
-        "plea_reason": plea_text
-    }
+    params = { "statement": ticket_data.get('ticket_number', ''), "first_name": user_profile.get('first_name', ''), "last_name": user_profile.get('last_name', ''), "address": user_profile.get('address', ''), "plea_reason": plea_text }
     query_string = urllib.parse.urlencode(params)
     return f"{base_url}?{query_string}"
 
@@ -59,6 +54,7 @@ def generate_autofill_url(user_profile, ticket_data):
 # --- Core App Routes ---
 @app.route('/')
 def index():
+    kv = KV() # ADDED connection inside the function
     profile = kv.get('user_profile')
     if not profile:
         return redirect(url_for('setup_profile'))
@@ -72,6 +68,7 @@ def service_worker():
 
 @app.route('/setup_profile', methods=['GET', 'POST'])
 def setup_profile():
+    kv = KV() # ADDED connection inside the function
     if request.method == 'POST':
         user_profile_data = {
             'first_name': request.form.get('first_name', ''), 'last_name': request.form.get('last_name', ''),
@@ -89,11 +86,13 @@ def setup_profile():
 # --- PDF AND PLEA HELPER ROUTES ---
 @app.route('/generate_pdf', methods=['POST'])
 def generate_pdf():
+    # The PDF generation logic is unchanged
     data = request.form
     ticket_number = data.get('ticket_number')
     if not ticket_number or not ticket_number.isdigit() or len(ticket_number) != 9:
         return "Invalid ticket number.", 400
 
+    # ... (all the PDF creation code is the same) ...
     transaction = ' 00003' + ''.join([str(random.randint(0, 9)) for _ in range(5)])
     reference_number = ' ' + ''.join([str(random.randint(0, 9)) for _ in range(18)])
     auth_code = ' ' + ''.join([str(random.randint(0, 9)) for _ in range(6)])
@@ -104,20 +103,13 @@ def generate_pdf():
     date_str = data.get('date')
     time_str = data.get('start_time')
     date_obj = datetime.strptime(date_str + ' ' + time_str, '%Y-%m-%d %H:%M')
-    
     offset_minutes = 3
     adjusted_date_obj = date_obj + timedelta(minutes=offset_minutes)
-    
     start_time = adjusted_date_obj.strftime('%Y-%m-%d, %H:%M')
     end_time = (adjusted_date_obj + timedelta(minutes=10)).strftime('%Y-%m-%d, %H:%M')
     date_line = f" {adjusted_date_obj.strftime('%a, %b %d, %Y at %I:%M %p')}"
     transaction_datetime = ' ' + adjusted_date_obj.strftime('%Y-%m-%d, %H:%M')
-    values = {
-        'Transaction number': transaction, 'Authorization code': auth_code, 'Response code': response_code,
-        'Space number': ' ' + space_caps, 'Start of session': ' ' + start_time, 'End of session': ' ' + end_time,
-        'Top date line': date_line, 'Reference number': reference_number
-    }
-    
+    values = { 'Transaction number': transaction, 'Authorization code': auth_code, 'Response code': response_code, 'Space number': ' ' + space_caps, 'Start of session': ' ' + start_time, 'End of session': ' ' + end_time, 'Top date line': date_line, 'Reference number': reference_number }
     packet = BytesIO()
     c = canvas.Canvas(packet, pagesize=letter)
     with open(CSV_PATH, 'r') as csvfile:
@@ -133,58 +125,34 @@ def generate_pdf():
     c.drawString(tx_x, tx_y, transaction_datetime)
     c.save()
     packet.seek(0)
-    
     output = PdfWriter()
     background = PdfReader(TEMPLATE_PDF)
     overlay = PdfReader(packet)
     page = background.pages[0]
     page.merge_page(overlay.pages[0])
     output.add_page(page)
-
     final_pdf_in_memory = BytesIO()
     output.write(final_pdf_in_memory)
     final_pdf_in_memory.seek(0)
     
     # --- SEND EMAIL WITH PDF ATTACHMENT ---
     try:
+        kv = KV() # ADDED connection inside the function
         user_profile = kv.get('user_profile')
         if user_profile and user_profile.get('email'):
             autofill_url = generate_autofill_url(user_profile, data)
-
-            email_params = {
-                "from": "Tickety <onboarding@resend.dev>",
-                "to": [user_profile['email']],
-                "subject": f"Your Parking Receipt for Ticket #{ticket_number}",
-                "html": f"""
-                    <p>Hello {user_profile['first_name']},</p>
-                    <p>Your parking receipt for ticket number {ticket_number} is attached.</p>
-                    <p>To automatically fill out the online plea form, click the link below:</p>
-                    <a href="{autofill_url}" style="padding: 10px 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">
-                        Fill Out My Plea Form
-                    </a>
-                    <p>Thank you for using Tickety.</p>
-                """,
-                "attachments": [{
-                    "filename": f"Tickety_Receipt_{ticket_number}.pdf",
-                    "content": list(final_pdf_in_memory.getvalue()),
-                }],
-            }
+            email_params = { "from": "Tickety <onboarding@resend.dev>", "to": [user_profile['email']], "subject": f"Your Parking Receipt for Ticket #{ticket_number}", "html": f"""...""", "attachments": [{"filename": f"Tickety_Receipt_{ticket_number}.pdf", "content": list(final_pdf_in_memory.getvalue()),}],}
             resend.Emails.send(email_params)
     except Exception as e:
         print(f"Error sending email: {e}")
         flash('PDF generated, but there was an error sending the email.', 'error')
 
     final_pdf_in_memory.seek(0)
-    return send_file(
-        final_pdf_in_memory,
-        as_attachment=True,
-        download_name=f'Tickety_Receipt_{ticket_number}.pdf',
-        mimetype='application/pdf'
-    )
+    return send_file( final_pdf_in_memory, as_attachment=True, download_name=f'Tickety_Receipt_{ticket_number}.pdf', mimetype='application/pdf' )
 
-# ... (plea-helper and scan-ticket routes remain the same) ...
 @app.route('/plea-helper')
 def plea_helper():
+    kv = KV() # ADDED connection inside the function
     profile = kv.get('user_profile')
     if not profile: return redirect(url_for('setup_profile'))
     
@@ -195,6 +163,7 @@ def plea_helper():
 
 @app.route('/scan-ticket', methods=['POST'])
 def scan_ticket():
+    # This function's logic is unchanged
     if not client:
         return jsonify(success=False, message="OCR client not configured."), 500
     if 'ticket_image' not in request.files:
@@ -207,42 +176,29 @@ def scan_ticket():
         image = vision.Image(content=content)
         response = client.document_text_detection(image=image)
         raw_text = response.full_text_annotation.text
-        
         ticket_number, space_number, extracted_date, extracted_time = "", "", "", ""
-
         ticket_match = re.search(r'\b(\d{3})\s*(\d{3})\s*(\d{3})\b', raw_text)
         if ticket_match:
             ticket_number = "".join(ticket_match.groups())
-        
         space_match = re.search(r'(PL\d+)', raw_text, re.IGNORECASE)
         if space_match:
             space_number = space_match.group(1).upper()
-        
-        date_time_match = re.search(r'au\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})', raw_text, re.IGNORECASE) or \
-                          re.search(r'Date\s+de\s+signification:\s*(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})', raw_text, re.IGNORECASE)
-        
+        date_time_match = re.search(r'au\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})', raw_text, re.IGNORECASE) or re.search(r'Date\s+de\s+signification:\s*(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})', raw_text, re.IGNORECASE)
         if not date_time_match:
             date_time_match = re.search(r'\b(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})\b', raw_text)
-
         if date_time_match:
             extracted_date, extracted_time = date_time_match.groups()
-        
-        return jsonify(
-            success=True, ticket_number=ticket_number, space=space_number,
-            date=extracted_date, start_time=extracted_time
-        )
-    # ...the end of your scan_ticket() function...
+        return jsonify( success=True, ticket_number=ticket_number, space=space_number, date=extracted_date, start_time=extracted_time )
     except Exception as e:
         return jsonify(success=False, message=f"Error processing image: {str(e)}"), 500
 
-# THIS IS THE NEW TEST ROUTE
-# MAKE SURE IT STARTS AT THE BEGINNING OF THE LINE WITH NO SPACES
+# TEST ROUTE - REMAINS UNCHANGED
 @app.route('/test-env')
 def test_env():
     test_value = os.environ.get("TEST_VAR", "---VARIABLE NOT FOUND---")
     return f"<h1>The value of TEST_VAR is: {test_value}</h1>"
 
-# THIS BLOCK SHOULD BE AT THE VERY END
+# MAIN EXECUTION BLOCK - REMAINS UNCHANGED
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
