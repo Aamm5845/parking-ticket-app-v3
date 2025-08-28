@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, send_file, jsonify, make_response, flash
-from vercel_kv import kv
+from vercel_kv import KV as kv
 import os
 import json
 from datetime import datetime, timedelta
