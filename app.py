@@ -231,13 +231,18 @@ def scan_ticket():
             success=True, ticket_number=ticket_number, space=space_number,
             date=extracted_date, start_time=extracted_time
         )
+    # ...the end of your scan_ticket() function...
     except Exception as e:
         return jsonify(success=False, message=f"Error processing image: {str(e)}"), 500
 
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
-    @app.route('/test-env')
+# THIS IS THE NEW TEST ROUTE
+# MAKE SURE IT STARTS AT THE BEGINNING OF THE LINE WITH NO SPACES
+@app.route('/test-env')
 def test_env():
     test_value = os.environ.get("TEST_VAR", "---VARIABLE NOT FOUND---")
     return f"<h1>The value of TEST_VAR is: {test_value}</h1>"
+
+# THIS BLOCK SHOULD BE AT THE VERY END
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
