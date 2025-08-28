@@ -237,3 +237,7 @@ def scan_ticket():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+    @app.route('/test-env')
+def test_env():
+    test_value = os.environ.get("TEST_VAR", "---VARIABLE NOT FOUND---")
+    return f"<h1>The value of TEST_VAR is: {test_value}</h1>"
