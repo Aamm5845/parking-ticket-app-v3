@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "mobicite-receipt-app",
+  "private_key_id": "5289b00ef247b51a46877da060e15a526c2b389b",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDMSqvBopuOZSrB\nRj4t5IDtHeB6Yd/a7oNVoDnojsPEEvmWflyyTuRvkOCGPQ1kMUmEzK+ZZlZnzR3V\ns10V4FAjSL416fN1zcEkJrhfV+J+wGqAVRANcv/yh5J2OQM5X+pyWtilDjgg/Z9q\n5qTKBEpzpUJWKn2NeDbEcQdorfFT5IWthG4XziNR5S56T98nkXWFP6h62eNjeN05\noyZ1+r/CnvQqFJGAqmsxI8vN18APo8kVLEoPtqlZJ24a/cEuLlbc62/Mf89Xs6IE\nIza7CUh/SkTvvNMt9Demj71yWmeV7UKSmT0/QSyJ0UFOSAAYvCCJ+QB3Ev1Gzvm2\nPSBa8YPFAgMBAAECggEAHOp3z69gtcHHkLZM0Eme3xEiyCfI2+/1Kn5EnBBzELJ/\n3eeSXtGwX0NCKHYFSnh4d8HSHBQiaExd6/TYmONYbHocJDzyTysZqrCJWcNyhW7e\nVD5WCJVNuYordqzgsjMLl/aYYhp2YuMLOMIfMpHzaNWMI26duVO56sm12wD93toB\ntsr0v+6lsBqHztvX4uYGlSyFhLr62o9haQ1ciCYh4BZWWaYcUOac/Anm7cTH+rzq\nqGEiYwvj/6gmgUwM8hruUlhSjfs99BqgSsC4PToNfdccpBhM9V4w0QrQWxS8mfx2\nwQ4DynMcnkUkD8KGQa3yzOCiM/Bg3KdAjIJnqQURSQKBgQDrVq3uebk4j5H4rLgy\ngzk/+F3pM9ykpoHuBGRwNJwoIs1fBi351vRdGmHU2PoDe/OOcEqizMGWukPDiiiL\nkJaaalU6IzESr0Fg7k2eu+6gqFfuTYXbiF/3WoKMreFxSMErJzB36LuioFgyGLvY\nioXMJwJdafp1YaPrllYapDkgDQKBgQDeOjNwNuCYlL3yBSfUTnbJnlIK3Akk5GGF\n60UHh38rmGOdoHZnOrBdwh6k94mNCjjPsHGPMREKmjGTd9zTleH2E7sMRxLPoqtb\nJb5wlQFCkTLHXPe4OvWhV/oVBzNLYMH1jp22uCEYpFPUDNF8S2LvNmqM7gvq3YcI\nFl5q6I/MmQKBgCMnuafMKy0V1Vpugr2Y+K5jrbOueaFm9jXWFiLk2Qbt2/v78lZG\nFA7sZ/zhxMdMdt+qSpvzNmALxx+ovdHLcZPzmnOq2iPOZlfSgWna7RS20RvaHMrk\nnmFW9fWJ7Al+Msz9d7IR5CWxCjvBkh4Q41fR4/qMYEu0oEYLGSW1rorpAoGAF4Th\nXMbyDjPvxmV1SarkN4Jh/HQ9I4JoL9wuehWFCAAgytXoshQsBkA9LghkrmCekpyB\n6D2xKAYZqRnObTY3q+t6qFn9S6xTplngRdn/QCRN03urW/whcun0tbUFYLzkyjBF\n0Mi79/esR4zzvsvbtKV1sWSgLkMzv09evsHONkECgYBn8dL6UONwkAIY64QYSTKi\npptu9vzwbQsXkIi4RTaSqMxgxgyoCLtW5tvuwADAfb+/vJEVD+VEGFc1TYzcWbsM\n90WA6w2U3AfEuOQsjZ62MyO2T9JdOyfyL9X2huFUu239R8r+ivYWW4ebwEG96Flp\nEkk+GkiGPzWj/sTyIsMW0w==\n-----END PRIVATE KEY-----\n",
+  "client_email": "mobilce-app@mobicite-receipt-app.iam.gserviceaccount.com",
+  "client_id": "103083651169191984885",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/mobilce-app%40mobicite-receipt-app.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
