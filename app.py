@@ -263,3 +263,8 @@ def autofill_script():
     ])
 
     return render_template('autofill_script.html', profile=profile, ticket_number=ticket_number, message=message)
+@app.route('/fight-ticket')
+def fight_ticket_redirect():
+    ticket_number = request.args.get('ticket_number', '')
+    return redirect(url_for('autofill_script', ticket_number=ticket_number))
+
