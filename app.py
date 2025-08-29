@@ -267,4 +267,8 @@ def autofill_script():
 def fight_ticket_redirect():
     ticket_number = request.args.get('ticket_number', '')
     return redirect(url_for('autofill_script', ticket_number=ticket_number))
+@app.route("/fight_ticket")
+def fight_ticket():
+    ticket_number = request.args.get("ticket")
+    return redirect(f"https://services.montreal.ca/plaidoyer/rechercher/en?ticket={ticket_number}")
 
