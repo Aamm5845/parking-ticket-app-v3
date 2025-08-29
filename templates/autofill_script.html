@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Launching Autofill</title>
+</head>
+<body>
+    <p>Opening Montreal contestation site…</p>
+    <script>
+        const ticketNumber = "{{ ticket_number }}";
+        const profile = {{ profile | tojson }};
+        const explanation = `{{ message }}`;
+
+        const script = `
+            setTimeout(() => {
+                document.querySelector('#searchTxtStatementNo').value = '${ticketNumber}';
+                document.querySelector('#searchBtnSubmit').click();
+            }, 1000);
+
+            setTimeout(() => {
+                document.querySelector('#who').value = '1';
+                document.querySelector('#who').dispatchEvent(new Event('change'));
+
+                document.querySelector('#firstName').value = '${profile["first_name"]}';
+                document.querySelector('#lastName').value = '${profile["last_name"]}';
+                document.querySelector('#licenceNumber').value = '${profile["license"]}';
+                document.querySelector('#address').value = '${profile["address"]}';
+                document.querySelector('#city').value = '${profile["city"]}';
+                document.querySelector('#postalCode').value = '${profile["postal_code"]}';
+                document.querySelector('#email').value = '${profile["email"]}';
+                document.querySelector('#confEmail').value = '${profile["email"]}';
+                document.querySelector('#explanation').value = \`${explanation}\`;
+            }, 4000);
+        `;
+
+        const win = window.open("https://services.montreal.ca/plaidoyer/rechercher/en", "_blank");
+        setTimeout(() => {
+            win.eval(script);  // May not work on all browsers
+        }, 3000);
+    </script>
+</body>
+</html>
