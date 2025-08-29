@@ -51,28 +51,24 @@
             </div>
         </main>
         {% else %}
-            <!-- This part is for when the user is logged out -->
-            <div class="signin-container">
-                 <div class="logo">
-                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Tickety Logo" class="signin-logo">
-                </div>
-                <p>Your digital ticket manager.</p>
-                <a href="{{ url_for('setup_profile') }}" class="btn btn-primary">Set Up My Profile</a>
+        <div class="signin-container">
+            <div class="logo">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Tickety Logo" class="signin-logo">
             </div>
+            <p>Your digital ticket manager.</p>
+            <a href="{{ url_for('setup_profile') }}" class="btn btn-primary">Set Up My Profile</a>
+        </div>
         {% endif %}
     </div>
     <div id="scanning_overlay" class="scanning-overlay">
         <img src="{{ url_for('static', filename='Material wave loading.gif') }}" alt="Scanning...">
         <p>Scanning ticket...</p>
     </div>
-    
+
     <script>
-        // This wrapper waits for the page to be fully loaded before running the script.
-        // This is the key to fixing the buttons.
         document.addEventListener('DOMContentLoaded', function () {
             const receiptForm = document.getElementById('receiptForm');
-            
-            // Only run this code if the main form exists (i.e., user is logged in)
+
             if (receiptForm) {
                 const scanTicketBtn = document.getElementById('scanTicketBtn');
                 const ticketImageInput = document.getElementById('ticket_image');
@@ -95,29 +91,29 @@
                             formData.append('ticket_image', file);
                             ocrStatus.style.display = 'none';
                             scanningOverlay.classList.add('visible');
-                            
+
                             fetch("{{ url_for('scan_ticket') }}", {
-                                    method: 'POST',
-                                    body: formData
-                                })
-                                .then(res => res.json())
-                                .then(data => {
-                                    scanningOverlay.classList.remove('visible');
-                                    ocrStatus.style.display = 'block';
-                                    if (data.success) {
-                                        document.getElementById('ticket_number').value = data.ticket_number || '';
-                                        document.getElementById('space').value = data.space || '';
-                                        document.getElementById('date').value = data.date || '';
-                                        document.getElementById('start_time').value = data.start_time || '';
-                                        ocrStatus.textContent = '✅ Ticket scanned successfully!';
-                                    } else {
-                                        ocrStatus.textContent = '❌ OCR failed: ' + (data.message || 'Could not extract information.');
-                                    }
-                                }).catch(err => {
-                                    scanningOverlay.classList.remove('visible');
-                                    ocrStatus.style.display = 'block';
-                                    ocrStatus.textContent = 'Error during scan.';
-                                });
+                                method: 'POST',
+                                body: formData
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                scanningOverlay.classList.remove('visible');
+                                ocrStatus.style.display = 'block';
+                                if (data.success) {
+                                    document.getElementById('ticket_number').value = data.ticket_number || '';
+                                    document.getElementById('space').value = data.space || '';
+                                    document.getElementById('date').value = data.date || '';
+                                    document.getElementById('start_time').value = data.start_time || '';
+                                    ocrStatus.textContent = '✅ Ticket scanned successfully!';
+                                } else {
+                                    ocrStatus.textContent = '❌ OCR failed: ' + (data.message || 'Could not extract information.');
+                                }
+                            }).catch(err => {
+                                scanningOverlay.classList.remove('visible');
+                                ocrStatus.style.display = 'block';
+                                ocrStatus.textContent = 'Error during scan.';
+                            });
                         }
                     });
                 }
@@ -126,7 +122,7 @@
                     fightBtn.addEventListener('click', () => {
                         const ticketNumber = ticketNumberInput.value;
                         if (ticketNumber && ticketNumber.length === 9) {
-                            window.location.href = `/plea-helper?ticket_number=${ticketNumber}`;
+                            window.open(`/autofill_script?ticket_number=${ticketNumber}`, '_blank');
                         } else {
                             alert('Please enter a valid 9-digit ticket number first.');
                         }

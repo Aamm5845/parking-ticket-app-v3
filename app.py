@@ -249,3 +249,17 @@ def scan_ticket():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+
+# Add autofill_script route to support in-browser fight ticket autofill
+@app.route('/autofill_script')
+def autofill_script():
+    profile = load_profile()
+    ticket_number = request.args.get('ticket_number', '')
+
+    message = random.choice([
+        "I had paid for parking through the app, but the officer issued the ticket just a few minutes before the transaction was processed. I have attached the receipt showing proof of payment.",
+        "I am pleading not guilty because I paid for parking using the mobile app at the time of parking. The ticket was issued either just before or right after the payment was confirmed. I've included the receipt to show this.",
+        "I received a parking ticket even though I had paid using the parking app. The ticket was likely issued within a very short window before the payment was processed. I’ve attached the app receipt showing the payment time as proof."
+    ])
+
+    return render_template('autofill_script.html', profile=profile, ticket_number=ticket_number, message=message)
