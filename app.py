@@ -1,4 +1,9 @@
 import os
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import json
 import random
 import re
@@ -12,6 +17,10 @@ from reportlab.lib.pagesizes import letter
 from google.cloud import vision
 from google.oauth2 import service_account
 import resend
+import secrets
+from dotenv import load_dotenv
+load_dotenv()
+
 
 # --- APP SETUP ---
 app = Flask(__name__)
@@ -103,6 +112,89 @@ def setup_profile():
         save_profile(user_profile_data)
         return redirect(url_for('index'))
     return render_template('profile_setup.html', profile=load_profile())
+
+@app.route('/fight_ticket', methods=['GET'])
+def fight_ticket_selenium():
+    """
+    Launches Chrome, opens Montreal contestation site, and auto-fills the form.
+    Uses the current profile + the provided ticket_number (?ticket_number=XXXXXXXXX).
+    Leaves the browser open so you can review/submit manually.
+    """
+    # 1) Get data
+    ticket_number = request.args.get('ticket_number', '').strip()
+    if not ticket_number or not ticket_number.isdigit() or len(ticket_number) != 9:
+        return "Invalid or missing 9-digit ticket_number.", 400
+
+    profile = load_profile() or {}
+    first_name = profile.get('first_name', '')
+    last_name = profile.get('last_name', '')
+    licence = profile.get('license', '')        # your profile field name is 'license'
+    address = profile.get('address', '')
+    city = profile.get('city', '')
+    postal_code = profile.get('postal_code', '')
+    email = profile.get('email', '')
+
+    # 2) Prepare Selenium (path can be env or your Windows path)
+    driver_path = os.environ.get('CHROMEDRIVER_PATH', r"C:\Users\ADMIN\Desktop\chromedriver.exe")
+    try:
+        service = Service(driver_path)
+        driver = webdriver.Chrome(service=service)
+        driver.maximize_window()
+    except Exception as e:
+        return f"Failed to start ChromeDriver at '{driver_path}': {e}", 500
+
+    try:
+        wait = WebDriverWait(driver, 20)
+
+        # 3) Open site
+        driver.get("https://services.montreal.ca/plaidoyer/rechercher/en")
+
+        # Step 1: Enter ticket number and search
+        wait.until(EC.presence_of_element_located((By.ID, "searchTxtStatementNo"))).send_keys(ticket_number)
+        wait.until(EC.element_to_be_clickable((By.ID, "searchBtnSubmit"))).click()
+
+        # Step 2: Choose "The person whose name appears on the statement of offence"
+        wait.until(EC.presence_of_element_located((By.ID, "who")))
+        who = driver.find_element(By.ID, "who")
+        who.click()
+        who.find_element(By.CSS_SELECTOR, "option[value='1']").click()
+
+        # Step 3: Fill personal info
+        wait.until(EC.presence_of_element_located((By.ID, "firstName"))).send_keys(first_name)
+        driver.find_element(By.ID, "lastName").send_keys(last_name)
+        if licence:
+            driver.find_element(By.ID, "licenceNumber").send_keys(licence)
+        driver.find_element(By.ID, "address").send_keys(address)
+        driver.find_element(By.ID, "city").send_keys(city)
+        driver.find_element(By.ID, "postalCode").send_keys(postal_code)
+        driver.find_element(By.ID, "email").send_keys(email)
+        driver.find_element(By.ID, "confEmail").send_keys(email)
+
+        # Step 4: Random explanation
+        messages = [
+            "I had paid for parking through the app, but the officer issued the ticket just a few minutes before the transaction was processed. I have attached the receipt showing proof of payment.",
+            "I am pleading not guilty because I paid for parking using the mobile app at the time of parking. The ticket was issued either just before or right after the payment was confirmed. I've included the receipt to show this.",
+            "I received a parking ticket even though I had paid using the parking app. The ticket was likely issued within a very short window before the payment was processed. I’ve attached the app receipt showing the payment time as proof."
+        ]
+        chosen = random.choice(messages)
+        driver.find_element(By.ID, "explanation").send_keys(chosen)
+
+        # Leave the browser open so you can review/submit manually
+        # (Flask will return immediately after this response.)
+        return """
+        <html><body style="font-family:Arial;padding:18px">
+        <h3>Chrome opened and the form was auto-filled.</h3>
+        <p>Check the Chrome window to review and submit your contestation.</p>
+        </body></html>
+        """
+    except Exception as e:
+        # If anything fails, close the browser and report the error
+        try:
+            driver.quit()
+        except Exception:
+            pass
+        return f"Automation error: {e}", 500
+
 
 # --- PDF GENERATION & EMAIL SENDING ---
 @app.route('/generate_pdf', methods=['POST'])
