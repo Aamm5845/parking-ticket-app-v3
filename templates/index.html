@@ -120,9 +120,9 @@
 
                 if (fightBtn && ticketNumberInput) {
                     fightBtn.addEventListener('click', () => {
-                        const ticketNumber = ticketNumberInput.value;
-                        if (ticketNumber && ticketNumber.length === 9) {
-                            window.open(`/autofill_script?ticket_number=${ticketNumber}`, '_blank');
+                        const ticketNumber = ticketNumberInput.value.trim();
+                        if (ticketNumber && /^\d{9}$/.test(ticketNumber)) {
+                            window.open(`/fight_ticket?ticket_number=${encodeURIComponent(ticketNumber)}`, '_blank');
                         } else {
                             alert('Please enter a valid 9-digit ticket number first.');
                         }
