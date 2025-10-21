@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fight Ticket - Tickety</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Tickety Logo" class="header-logo">
+            <h1>Fight Your Ticket</h1>
+        </header>
+        <main class="app-main">
+            <div class="action-card" style="padding: 1rem;">
+                <h2>Automated Ticket Dispute</h2>
+                <p style="text-align: center; color: #757575; margin-bottom: 1.5rem;">
+                    Click the button below to automatically open and fill the Montreal ticket dispute form.
+                </p>
+                
+                <div class="copy-group">
+                    <label>Ticket Number</label>
+                    <div class="input-wrapper">
+                        <input type="text" value="{{ form_data.ticket_number }}" readonly>
+                        <button class="copy-btn" onclick="copyToClipboard('{{ form_data.ticket_number }}')">
+                            <span class="material-icons">content_copy</span>
+                            Copy
+                        </button>
+                    </div>
+                </div>
+
+                <div class="copy-group">
+                    <label>Your Name</label>
+                    <div class="input-wrapper">
+                        <input type="text" value="{{ form_data.first_name }} {{ form_data.last_name }}" readonly>
+                        <button class="copy-btn" onclick="copyToClipboard('{{ form_data.first_name }} {{ form_data.last_name }}')">
+                            <span class="material-icons">content_copy</span>
+                            Copy
+                        </button>
+                    </div>
+                </div>
+
+                <div class="copy-group">
+                    <label>Driver's License</label>
+                    <div class="input-wrapper">
+                        <input type="text" value="{{ form_data.license }}" readonly>
+                        <button class="copy-btn" onclick="copyToClipboard('{{ form_data.license }}')">
+                            <span class="material-icons">content_copy</span>
+                            Copy
+                        </button>
+                    </div>
+                </div>
+
+                <div class="copy-group">
+                    <label>Address</label>
+                    <div class="input-wrapper">
+                        <input type="text" value="{{ form_data.address }}" readonly>
+                        <button class="copy-btn" onclick="copyToClipboard('{{ form_data.address }}')">
+                            <span class="material-icons">content_copy</span>
+                            Copy
+                        </button>
+                    </div>
+                </div>
+
+                <div class="copy-group">
+                    <label>City</label>
+                    <div class="input-wrapper">
+                        <input type="text" value="{{ form_data.city }}" readonly>
+                        <button class="copy-btn" onclick="copyToClipboard('{{ form_data.city }}')">
+                            <span class="material-icons">content_copy</span>
+                            Copy
+                        </button>
+                    </div>
+                </div>
+
+                <div class="copy-group">
+                    <label>Postal Code</label>
+                    <div class="input-wrapper">
+                        <input type="text" value="{{ form_data.postal_code }}" readonly>
+                        <button class="copy-btn" onclick="copyToClipboard('{{ form_data.postal_code }}')">
+                            <span class="material-icons">content_copy</span>
+                            Copy
+                        </button>
+                    </div>
+                </div>
+
+                <div class="copy-group">
+                    <label>Email</label>
+                    <div class="input-wrapper">
+                        <input type="text" value="{{ form_data.email }}" readonly>
+                        <button class="copy-btn" onclick="copyToClipboard('{{ form_data.email }}')">
+                            <span class="material-icons">content_copy</span>
+                            Copy
+                        </button>
+                    </div>
+                </div>
+
+                <div class="copy-group">
+                    <label>Explanation</label>
+                    <textarea readonly>{{ form_data.explanation }}</textarea>
+                    <button class="copy-btn" style="width: 100%; margin-top: 0.5rem; border-radius: 8px;" onclick="copyToClipboard(`{{ form_data.explanation }}`)">
+                        <span class="material-icons">content_copy</span>
+                        Copy Explanation
+                    </button>
+                </div>
+
+                <div class="form-actions-group" style="margin-top: 2rem;">
+                    <button type="button" class="btn btn-primary" onclick="openAndFillForm()" id="autofillBtn">
+                        <span class="material-icons">launch</span>
+                        Open & Auto-Fill Form
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="openManualForm()">
+                        <span class="material-icons">open_in_new</span>
+                        Open Form (Manual)
+                    </button>
+                </div>
+
+                <div id="status" style="margin-top: 1rem; text-align: center; font-weight: 500;"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Include Google Fonts for Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <script>
+        const formData = {
+            ticketNumber: '{{ form_data.ticket_number }}',
+            firstName: '{{ form_data.first_name }}',
+            lastName: '{{ form_data.last_name }}',
+            license: '{{ form_data.license }}',
+            address: '{{ form_data.address }}',
+            city: '{{ form_data.city }}',
+            postalCode: '{{ form_data.postal_code }}',
+            email: '{{ form_data.email }}',
+            explanation: `{{ form_data.explanation }}`
+        };
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                showStatus('Copied to clipboard!', 'success');
+            }).catch(function(err) {
+                showStatus('Failed to copy', 'error');
+            });
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.style.color = type === 'success' ? '#00C853' : '#F44336';
+            setTimeout(() => {
+                status.textContent = '';
+            }, 3000);
+        }
+
+        function openManualForm() {
+            window.open('https://services.montreal.ca/plaidoyer/rechercher/en', '_blank');
+            showStatus('Form opened. Use the copy buttons to fill manually.', 'success');
+        }
+
+        function openAndFillForm() {
+            const montrealWindow = window.open('https://services.montreal.ca/plaidoyer/rechercher/en', '_blank');
+            
+            if (!montrealWindow) {
+                showStatus('Popup blocked. Please allow popups and try again.', 'error');
+                return;
+            }
+
+            showStatus('Opening form... Auto-fill will start in 5 seconds.', 'success');
+            
+            // Wait for the page to load, then attempt auto-fill
+            setTimeout(() => {
+                try {
+                    // Step 1: Fill ticket number and search
+                    fillStep1(montrealWindow);
+                    
+                    // Step 2: Wait and fill personal info
+                    setTimeout(() => fillStep2(montrealWindow), 3000);
+                    
+                    // Step 3: Wait and fill explanation
+                    setTimeout(() => fillStep3(montrealWindow), 6000);
+                    
+                } catch (error) {
+                    console.error('Auto-fill error:', error);
+                    showStatus('Auto-fill failed. Please fill manually using copy buttons.', 'error');
+                }
+            }, 5000);
+        }
+
+        function fillStep1(targetWindow) {
+            try {
+                const ticketInput = targetWindow.document.querySelector('#searchTxtStatementNo');
+                const searchBtn = targetWindow.document.querySelector('#searchBtnSubmit');
+                
+                if (ticketInput && searchBtn) {
+                    ticketInput.value = formData.ticketNumber;
+                    searchBtn.click();
+                    showStatus('Step 1: Ticket number entered', 'success');
+                } else {
+                    showStatus('Could not find ticket number field', 'error');
+                }
+            } catch (error) {
+                showStatus('Step 1 failed - please fill manually', 'error');
+            }
+        }
+
+        function fillStep2(targetWindow) {
+            try {
+                // Select "person whose name appears" option
+                const whoDropdown = targetWindow.document.querySelector('#who');
+                if (whoDropdown) {
+                    whoDropdown.value = '1';
+                    whoDropdown.dispatchEvent(new Event('change'));
+                }
+
+                // Fill personal information
+                const fields = [
+                    { selector: '#firstName', value: formData.firstName },
+                    { selector: '#lastName', value: formData.lastName },
+                    { selector: '#licenceNumber', value: formData.license },
+                    { selector: '#address', value: formData.address },
+                    { selector: '#city', value: formData.city },
+                    { selector: '#postalCode', value: formData.postalCode },
+                    { selector: '#email', value: formData.email },
+                    { selector: '#confEmail', value: formData.email }
+                ];
+
+                let filledCount = 0;
+                fields.forEach(field => {
+                    const element = targetWindow.document.querySelector(field.selector);
+                    if (element) {
+                        element.value = field.value;
+                        element.dispatchEvent(new Event('input'));
+                        filledCount++;
+                    }
+                });
+
+                showStatus(`Step 2: Filled ${filledCount} personal info fields`, 'success');
+            } catch (error) {
+                showStatus('Step 2 failed - please fill personal info manually', 'error');
+            }
+        }
+
+        function fillStep3(targetWindow) {
+            try {
+                const explanationField = targetWindow.document.querySelector('#explanation');
+                if (explanationField) {
+                    explanationField.value = formData.explanation;
+                    explanationField.dispatchEvent(new Event('input'));
+                    showStatus('Step 3: Explanation filled. Please review and submit!', 'success');
+                } else {
+                    showStatus('Could not find explanation field', 'error');
+                }
+            } catch (error) {
+                showStatus('Step 3 failed - please fill explanation manually', 'error');
+            }
+        }
+
+        // Check if we can access the opened window (same-origin policy)
+        function checkCrossOriginAccess() {
+            try {
+                const testWindow = window.open('about:blank', '_blank');
+                testWindow.close();
+                return true;
+            } catch (error) {
+                return false;
+            }
+        }
+    </script>
+</body>
+</html>

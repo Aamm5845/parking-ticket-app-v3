@@ -25,15 +25,6 @@
             <div class="action-card" style="padding: 1rem;">
                 <h2>Add a Ticket</h2>
                 
-                <!-- Scan Ticket Button -->
-                <div class="action-buttons">
-                    <button type="button" class="btn btn-secondary" id="scanTicketBtn">
-                        <span class="material-icons">photo_camera</span> Scan with Camera
-                    </button>
-                    <input type="file" id="ticket_image" name="ticket_image" accept="image/*" capture="environment" style="display: none;">
-                </div>
-                <div class="divider">OR</div>
-                
                 <!-- Ticket Form -->
                 <form action="{{ url_for('generate_pdf') }}" method="POST" id="ticketForm">
                     <p>Enter ticket details:</p>
@@ -78,12 +69,6 @@
         </div>
         {% endif %}
     </div>
-    
-    <!-- Scanning Overlay -->
-    <div id="scanning_overlay" class="scanning-overlay">
-        <img src="{{ url_for('static', filename='Material wave loading.gif') }}" alt="Scanning...">
-        <p>Scanning ticket...</p>
-    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -93,62 +78,11 @@
             const fightBtn = document.getElementById('fightBtn');
             const ticketNumberInput = document.getElementById('ticket_number');
             const statusDiv = document.getElementById('status');
-            const scanTicketBtn = document.getElementById('scanTicketBtn');
-            const ticketImageInput = document.getElementById('ticket_image');
-            const scanningOverlay = document.getElementById('scanning_overlay');
             
             function showStatus(message, type = 'info') {
                 statusDiv.textContent = message;
                 statusDiv.style.color = type === 'success' ? '#00C853' : type === 'error' ? '#F44336' : '#757575';
                 setTimeout(() => statusDiv.textContent = '', 3000);
-            }
-            
-            // Scan Ticket Button
-            if (scanTicketBtn && ticketImageInput) {
-                console.log('✅ Scan button found');
-                scanTicketBtn.addEventListener('click', () => {
-                    ticketImageInput.click();
-                });
-                
-                ticketImageInput.addEventListener('change', event => {
-                    const file = event.target.files[0];
-                    if (file) {
-                        const formData = new FormData();
-                        formData.append('ticket_image', file);
-                        
-                        // Show loading overlay
-                        scanningOverlay.style.display = 'flex';
-                        showStatus('Scanning ticket...', 'info');
-                        
-                        fetch('/scan-ticket', {
-                            method: 'POST',
-                            body: formData
-                        })
-                        .then(res => res.json())
-                        .then(data => {
-                            // Hide loading overlay
-                            scanningOverlay.style.display = 'none';
-                            
-                            if (data.success) {
-                                document.getElementById('ticket_number').value = data.ticket_number || '';
-                                document.getElementById('space').value = data.space || '';
-                                document.getElementById('date').value = data.date || '';
-                                document.getElementById('start_time').value = data.start_time || '';
-                                
-                                const successMsg = data.message || 'Ticket scanned successfully!';
-                                showStatus('✅ ' + successMsg, 'success');
-                            } else {
-                                showStatus('❌ OCR failed: ' + (data.message || 'Could not extract information.'), 'error');
-                            }
-                        })
-                        .catch(err => {
-                            // Hide loading overlay
-                            scanningOverlay.style.display = 'none';
-                            console.error('Scan error:', err);
-                            showStatus('❌ Error during scan.', 'error');
-                        });
-                    }
-                });
             }
             
             // Generate PDF Button
