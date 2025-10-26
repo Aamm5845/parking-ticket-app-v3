@@ -118,6 +118,11 @@ TEMPLATE_PDF = os.path.join(APP_ROOT, 'static', 'base_template.pdf')
 
 PROFILE_FILE = os.path.join('/tmp', 'profile.json') if os.environ.get("VERCEL") else os.path.join(APP_ROOT, 'profile.json')
 
+# Vercel KV storage simulation using environment variables
+def get_profile_key():
+    """Get a unique profile key based on user session or default"""
+    return os.environ.get('USER_PROFILE_DATA', None)
+
 
 # --- SECURITY HELPERS ---
 def is_local_request():
@@ -128,17 +133,38 @@ def is_local_request():
 # --- PROFILE HELPERS ---
 def save_profile(data):
     try:
-        with open(PROFILE_FILE, 'w') as f:
-            json.dump(data, f)
+        # For Vercel, we'll store in session (temporary) since files don't persist
+        if os.environ.get("VERCEL"):
+            # Store in Flask session as a workaround
+            from flask import session
+            session['user_profile'] = data
+            session.permanent = True
+        else:
+            # Local development - use file
+            with open(PROFILE_FILE, 'w') as f:
+                json.dump(data, f)
     except Exception as e:
         print(f"Error saving profile: {e}")
 
 def load_profile():
     try:
-        if os.path.exists(PROFILE_FILE):
-            with open(PROFILE_FILE, 'r') as f:
-                return json.load(f)
-        return {}
+        # For Vercel, check session first
+        if os.environ.get("VERCEL"):
+            from flask import session
+            profile = session.get('user_profile', {})
+            if profile:
+                return profile
+            # Fallback to environment variable if set (for persistent user data)
+            profile_json = os.environ.get('USER_PROFILE_DATA')
+            if profile_json:
+                return json.loads(profile_json)
+            return {}
+        else:
+            # Local development - use file
+            if os.path.exists(PROFILE_FILE):
+                with open(PROFILE_FILE, 'r') as f:
+                    return json.load(f)
+            return {}
     except Exception as e:
         print(f"Error loading profile: {e}")
         return {}
