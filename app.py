@@ -413,41 +413,7 @@ def scan_ticket():
         
     except Exception as e:
         print(f"Google Cloud Vision failed: {e}")
-        
-        # Try local OCR fallback
-        try:
-            from local_ocr import extract_ticket_info_local, simple_ocr_fallback
-            
-            # Reset file pointer
-            file.seek(0)
-            content = file.read()
-            
-            # Try local OCR first
-            result = extract_ticket_info_local(content)
-            if "error" not in result:
-                return jsonify(
-                    success=True,
-                    ticket_number=result.get("ticket_number", ""),
-                    space=result.get("space", ""),
-                    date=result.get("date", ""),
-                    start_time=result.get("start_time", ""),
-                    message="Used local OCR (Tesseract)"
-                )
-            
-            # If local OCR fails, use mock data for development
-            fallback_result = simple_ocr_fallback(content)
-            return jsonify(
-                success=True,
-                ticket_number=fallback_result["ticket_number"],
-                space=fallback_result["space"],
-                date=fallback_result["date"],
-                start_time=fallback_result["start_time"],
-                message="OCR unavailable - using sample data for testing"
-            )
-            
-        except Exception as fallback_error:
-            print(f"Fallback OCR also failed: {fallback_error}")
-            return jsonify(success=False, message=f"OCR failed: {str(e)}. Try manual entry."), 500
+        return jsonify(success=False, message=f"OCR failed: {str(e)}. Please enter ticket details manually."), 500
 
 # Add autofill_script route to support in-browser fight ticket autofill
 @app.route('/autofill_script')
