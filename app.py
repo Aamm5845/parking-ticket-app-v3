@@ -264,6 +264,13 @@ def generate_pdf():
     c.save()
     packet.seek(0)
 
+    # Instead of merging PDFs, render everything as an image from the start
+    # This creates a truly flattened PDF with no editable layers
+    from reportlab.lib.utils import ImageReader
+    from PIL import Image
+    import fitz  # PyMuPDF
+    
+    # First create the merged PDF as before
     output = PdfWriter()
     background = PdfReader(TEMPLATE_PDF)
     overlay = PdfReader(packet)
@@ -274,26 +281,35 @@ def generate_pdf():
     output.write(temp_pdf)
     temp_pdf.seek(0)
     
-    # Flatten PDF by converting to image and back to PDF
+    # Now flatten it by converting to image using PyMuPDF
     try:
-        from pdf2image import convert_from_bytes
-        from PIL import Image
+        # Open PDF with PyMuPDF
+        doc = fitz.open(stream=temp_pdf.read(), filetype="pdf")
+        page = doc[0]
         
-        # Convert PDF to image (high quality)
-        images = convert_from_bytes(temp_pdf.read(), dpi=300, fmt='png')
+        # Render page to high-res image (300 DPI)
+        mat = fitz.Matrix(300/72, 300/72)  # 300 DPI
+        pix = page.get_pixmap(matrix=mat)
         
-        # Convert image back to PDF
+        # Convert to PIL Image
+        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+        
+        # Create new PDF with just the image
         final_pdf_in_memory = BytesIO()
-        if images:
-            # Save as PDF
-            images[0].save(final_pdf_in_memory, 'PDF', resolution=300.0, quality=95)
-            final_pdf_in_memory.seek(0)
-        else:
-            # Fallback to original if conversion fails
-            temp_pdf.seek(0)
-            final_pdf_in_memory = temp_pdf
+        c_new = canvas.Canvas(final_pdf_in_memory, pagesize=letter)
+        
+        # Draw image to fill the page
+        c_new.drawImage(ImageReader(img), 0, 0, width=letter[0], height=letter[1])
+        c_new.save()
+        
+        final_pdf_in_memory.seek(0)
+        doc.close()
+        print("✅ PDF flattened successfully")
+        
     except Exception as e:
-        print(f"PDF flattening failed, using original: {e}")
+        print(f"⚠️ PDF flattening failed, using original: {e}")
+        import traceback
+        traceback.print_exc()
         temp_pdf.seek(0)
         final_pdf_in_memory = temp_pdf
 
