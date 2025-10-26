@@ -270,9 +270,32 @@ def generate_pdf():
     page = background.pages[0]
     page.merge_page(overlay.pages[0])
     output.add_page(page)
-    final_pdf_in_memory = BytesIO()
-    output.write(final_pdf_in_memory)
-    final_pdf_in_memory.seek(0)
+    temp_pdf = BytesIO()
+    output.write(temp_pdf)
+    temp_pdf.seek(0)
+    
+    # Flatten PDF by converting to image and back to PDF
+    try:
+        from pdf2image import convert_from_bytes
+        from PIL import Image
+        
+        # Convert PDF to image (high quality)
+        images = convert_from_bytes(temp_pdf.read(), dpi=300, fmt='png')
+        
+        # Convert image back to PDF
+        final_pdf_in_memory = BytesIO()
+        if images:
+            # Save as PDF
+            images[0].save(final_pdf_in_memory, 'PDF', resolution=300.0, quality=95)
+            final_pdf_in_memory.seek(0)
+        else:
+            # Fallback to original if conversion fails
+            temp_pdf.seek(0)
+            final_pdf_in_memory = temp_pdf
+    except Exception as e:
+        print(f"PDF flattening failed, using original: {e}")
+        temp_pdf.seek(0)
+        final_pdf_in_memory = temp_pdf
 
     # Send email with PDF (optional - app works without email)
     email_sent = False
