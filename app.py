@@ -147,27 +147,18 @@ def save_profile(data):
         print(f"Error saving profile: {e}")
 
 def load_profile():
-    try:
-        # For Vercel, check session first
-        if os.environ.get("VERCEL"):
-            from flask import session
-            profile = session.get('user_profile', {})
-            if profile:
-                return profile
-            # Fallback to environment variable if set (for persistent user data)
-            profile_json = os.environ.get('USER_PROFILE_DATA')
-            if profile_json:
-                return json.loads(profile_json)
-            return {}
-        else:
-            # Local development - use file
-            if os.path.exists(PROFILE_FILE):
-                with open(PROFILE_FILE, 'r') as f:
-                    return json.load(f)
-            return {}
-    except Exception as e:
-        print(f"Error loading profile: {e}")
-        return {}
+    """Load hardcoded profile - it's always the same user"""
+    return {
+        'first_name': 'Aaron',
+        'last_name': 'Meisner',
+        'license': 'M256112128808',
+        'address': '661 Querbes',
+        'city': 'Montreal',
+        'province': 'Québec',
+        'postal_code': 'H2V3W6',
+        'country': 'Canada',
+        'email': 'AAMM5845@GMAIL.COM'
+    }
 
 # --- AUTOFILL URL GENERATOR ---
 def generate_autofill_url(user_profile, ticket_data):
