@@ -1,3 +1,4 @@
+# Development dependencies - includes everything from requirements.txt plus local-only packages
 Flask==3.0.3
 gunicorn==21.2.0
 PyPDF2==3.0.1
@@ -10,3 +11,7 @@ resend==0.8.0
 python-dotenv==1.0.0
 certifi==2024.8.30
 urllib3==2.0.7
+
+# Local development only - not deployed to Vercel
+selenium==4.25.0
+webdriver-manager==4.0.1

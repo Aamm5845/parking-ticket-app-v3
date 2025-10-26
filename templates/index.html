@@ -25,12 +25,40 @@
             <div class="action-card" style="padding: 1rem;">
                 <h2>Add a Ticket</h2>
                 
-                <!-- Scan Ticket Button -->
+                <!-- Scan Ticket Buttons -->
                 <div class="action-buttons">
-                    <button type="button" class="btn btn-secondary" id="scanTicketBtn">
-                        <span class="material-icons">photo_camera</span> Scan with Camera
+                    <button type="button" class="btn btn-secondary" id="webcamScanBtn">
+                        <span class="material-icons">videocam</span> Use Webcam
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="fileScanBtn">
+                        <span class="material-icons">photo_camera</span> Upload Photo
                     </button>
                     <input type="file" id="ticket_image" name="ticket_image" accept="image/*" capture="environment" style="display: none;">
+                </div>
+                
+                <!-- Webcam Modal -->
+                <div id="webcamModal" class="modal" style="display: none;">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>📷 Capture Ticket Photo</h3>
+                            <button class="close-btn" id="closeWebcam">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <video id="webcamVideo" autoplay playsinline style="width: 100%; max-width: 500px; border-radius: 8px;"></video>
+                            <canvas id="webcamCanvas" style="display: none;"></canvas>
+                            <div class="webcam-controls" style="margin-top: 1rem; text-align: center;">
+                                <button type="button" class="btn btn-primary" id="captureBtn">
+                                    <span class="material-icons">camera</span> Capture Photo
+                                </button>
+                                <button type="button" class="btn btn-secondary" id="retakeBtn" style="display: none;">
+                                    <span class="material-icons">refresh</span> Retake
+                                </button>
+                                <button type="button" class="btn btn-success" id="usePhotoBtn" style="display: none;">
+                                    <span class="material-icons">check</span> Use This Photo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="divider">OR</div>
                 
@@ -93,9 +121,20 @@
             const fightBtn = document.getElementById('fightBtn');
             const ticketNumberInput = document.getElementById('ticket_number');
             const statusDiv = document.getElementById('status');
-            const scanTicketBtn = document.getElementById('scanTicketBtn');
+            const webcamScanBtn = document.getElementById('webcamScanBtn');
+            const fileScanBtn = document.getElementById('fileScanBtn');
             const ticketImageInput = document.getElementById('ticket_image');
             const scanningOverlay = document.getElementById('scanning_overlay');
+            const webcamModal = document.getElementById('webcamModal');
+            const webcamVideo = document.getElementById('webcamVideo');
+            const webcamCanvas = document.getElementById('webcamCanvas');
+            const captureBtn = document.getElementById('captureBtn');
+            const retakeBtn = document.getElementById('retakeBtn');
+            const usePhotoBtn = document.getElementById('usePhotoBtn');
+            const closeWebcam = document.getElementById('closeWebcam');
+            
+            let currentStream = null;
+            let capturedImageBlob = null;
             
             function showStatus(message, type = 'info') {
                 statusDiv.textContent = message;
@@ -103,53 +142,156 @@
                 setTimeout(() => statusDiv.textContent = '', 3000);
             }
             
-            // Scan Ticket Button
-            if (scanTicketBtn && ticketImageInput) {
-                console.log('✅ Scan button found');
-                scanTicketBtn.addEventListener('click', () => {
+            // Webcam functionality
+            function stopWebcamStream() {
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                    currentStream = null;
+                }
+            }
+            
+            function processTicketImage(imageBlob) {
+                const formData = new FormData();
+                formData.append('ticket_image', imageBlob, 'ticket.jpg');
+                
+                // Hide webcam modal and show loading
+                webcamModal.style.display = 'none';
+                scanningOverlay.style.display = 'flex';
+                showStatus('Scanning ticket...', 'info');
+                
+                fetch('/scan-ticket', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    // Hide loading overlay
+                    scanningOverlay.style.display = 'none';
+                    
+                    if (data.success) {
+                        document.getElementById('ticket_number').value = data.ticket_number || '';
+                        document.getElementById('space').value = data.space || '';
+                        document.getElementById('date').value = data.date || '';
+                        document.getElementById('start_time').value = data.start_time || '';
+                        
+                        const successMsg = data.message || 'Ticket scanned successfully!';
+                        showStatus('✅ ' + successMsg, 'success');
+                    } else {
+                        showStatus('❌ OCR failed: ' + (data.message || 'Could not extract information.'), 'error');
+                    }
+                })
+                .catch(err => {
+                    // Hide loading overlay
+                    scanningOverlay.style.display = 'none';
+                    console.error('Scan error:', err);
+                    showStatus('❌ Error during scan.', 'error');
+                });
+            }
+            
+            // Webcam scan button
+            if (webcamScanBtn) {
+                console.log('✅ Webcam scan button found');
+                webcamScanBtn.addEventListener('click', async () => {
+                    try {
+                        currentStream = await navigator.mediaDevices.getUserMedia({ 
+                            video: { 
+                                facingMode: 'environment' // Try to use back camera on mobile
+                            } 
+                        });
+                        webcamVideo.srcObject = currentStream;
+                        webcamModal.style.display = 'flex';
+                        
+                        // Reset UI state
+                        captureBtn.style.display = 'inline-block';
+                        retakeBtn.style.display = 'none';
+                        usePhotoBtn.style.display = 'none';
+                        webcamVideo.style.display = 'block';
+                        
+                    } catch (err) {
+                        console.error('Error accessing webcam:', err);
+                        showStatus('❌ Could not access webcam. Please check permissions.', 'error');
+                    }
+                });
+            }
+            
+            // File upload scan button
+            if (fileScanBtn && ticketImageInput) {
+                console.log('✅ File scan button found');
+                fileScanBtn.addEventListener('click', () => {
                     ticketImageInput.click();
                 });
                 
                 ticketImageInput.addEventListener('change', event => {
                     const file = event.target.files[0];
                     if (file) {
-                        const formData = new FormData();
-                        formData.append('ticket_image', file);
-                        
-                        // Show loading overlay
-                        scanningOverlay.style.display = 'flex';
-                        showStatus('Scanning ticket...', 'info');
-                        
-                        fetch('/scan-ticket', {
-                            method: 'POST',
-                            body: formData
-                        })
-                        .then(res => res.json())
-                        .then(data => {
-                            // Hide loading overlay
-                            scanningOverlay.style.display = 'none';
-                            
-                            if (data.success) {
-                                document.getElementById('ticket_number').value = data.ticket_number || '';
-                                document.getElementById('space').value = data.space || '';
-                                document.getElementById('date').value = data.date || '';
-                                document.getElementById('start_time').value = data.start_time || '';
-                                
-                                const successMsg = data.message || 'Ticket scanned successfully!';
-                                showStatus('✅ ' + successMsg, 'success');
-                            } else {
-                                showStatus('❌ OCR failed: ' + (data.message || 'Could not extract information.'), 'error');
-                            }
-                        })
-                        .catch(err => {
-                            // Hide loading overlay
-                            scanningOverlay.style.display = 'none';
-                            console.error('Scan error:', err);
-                            showStatus('❌ Error during scan.', 'error');
-                        });
+                        processTicketImage(file);
                     }
                 });
             }
+            
+            // Webcam controls
+            if (captureBtn && webcamCanvas) {
+                captureBtn.addEventListener('click', () => {
+                    const context = webcamCanvas.getContext('2d');
+                    webcamCanvas.width = webcamVideo.videoWidth;
+                    webcamCanvas.height = webcamVideo.videoHeight;
+                    
+                    context.drawImage(webcamVideo, 0, 0);
+                    
+                    // Convert to blob
+                    webcamCanvas.toBlob(blob => {
+                        capturedImageBlob = blob;
+                        
+                        // Update UI
+                        webcamVideo.style.display = 'none';
+                        captureBtn.style.display = 'none';
+                        retakeBtn.style.display = 'inline-block';
+                        usePhotoBtn.style.display = 'inline-block';
+                        
+                        // Show captured image
+                        webcamCanvas.style.display = 'block';
+                        
+                    }, 'image/jpeg', 0.8);
+                });
+            }
+            
+            if (retakeBtn) {
+                retakeBtn.addEventListener('click', () => {
+                    // Reset to video mode
+                    webcamVideo.style.display = 'block';
+                    webcamCanvas.style.display = 'none';
+                    captureBtn.style.display = 'inline-block';
+                    retakeBtn.style.display = 'none';
+                    usePhotoBtn.style.display = 'none';
+                    capturedImageBlob = null;
+                });
+            }
+            
+            if (usePhotoBtn) {
+                usePhotoBtn.addEventListener('click', () => {
+                    if (capturedImageBlob) {
+                        stopWebcamStream();
+                        processTicketImage(capturedImageBlob);
+                    }
+                });
+            }
+            
+            if (closeWebcam) {
+                closeWebcam.addEventListener('click', () => {
+                    stopWebcamStream();
+                    webcamModal.style.display = 'none';
+                    capturedImageBlob = null;
+                });
+            }
+            
+            // Close modal when clicking outside
+            webcamModal.addEventListener('click', (e) => {
+                if (e.target === webcamModal) {
+                    stopWebcamStream();
+                    webcamModal.style.display = 'none';
+                    capturedImageBlob = null;
+                }
+            });
             
             // Generate PDF Button
             if (generateBtn) {
@@ -160,7 +302,7 @@
                 });
             }
             
-            // Fight Ticket Button
+            // Fight Ticket Button - redirect to enhanced form
             if (fightBtn && ticketNumberInput) {
                 console.log('✅ Fight button found');
                 fightBtn.addEventListener('click', function(e) {
@@ -179,44 +321,9 @@
                         return;
                     }
                     
-                    // Show loading
-                    const originalText = fightBtn.innerHTML;
-                    fightBtn.disabled = true;
-                    fightBtn.innerHTML = '<span class="material-icons">hourglass_empty</span> Opening Montreal Form...';
-                    showStatus('Starting Montreal form automation...', 'info');
-                    
-                    // Call Selenium automation
-                    fetch('/fight_ticket_selenium', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: `ticket_number=${encodeURIComponent(ticketNumber)}`
-                    })
-                    .then(response => {
-                        console.log('Response status:', response.status);
-                        return response.json();
-                    })
-                    .then(data => {
-                        console.log('Response data:', data);
-                        if (data.success) {
-                            showStatus('✅ ' + data.message, 'success');
-                            alert('✅ ' + data.message);
-                        } else {
-                            showStatus('❌ ' + data.message, 'error');
-                            alert('❌ ' + data.message);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Fetch error:', error);
-                        showStatus('❌ Failed to connect to server', 'error');
-                        alert('❌ Failed to open Montreal form. Error: ' + error.message);
-                    })
-                    .finally(() => {
-                        // Reset button
-                        fightBtn.disabled = false;
-                        fightBtn.innerHTML = originalText;
-                    });
+                    // Redirect to enhanced fight ticket form
+                    showStatus('Opening enhanced fight ticket form...', 'info');
+                    window.location.href = `/fight_ticket_form?ticket_number=${encodeURIComponent(ticketNumber)}`;
                 });
             } else {
                 console.log('❌ Fight button or ticket input not found');

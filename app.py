@@ -6,7 +6,7 @@ import csv
 import ssl
 from datetime import datetime, timedelta
 from io import BytesIO
-from flask import Flask, render_template, request, redirect, url_for, send_file, jsonify, make_response, flash
+from flask import Flask, render_template, request, redirect, url_for, send_file, jsonify, make_response, flash, abort
 from PyPDF2 import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
@@ -75,6 +75,35 @@ def get_vision_client():
 client = get_vision_client()
 
 
+# --- ENVIRONMENT DETECTION ---
+ENABLE_SELENIUM = os.getenv('ENABLE_SELENIUM') == '1'
+ON_VERCEL = bool(os.getenv('VERCEL'))
+HAS_SELENIUM_SUPPORT = ENABLE_SELENIUM and not ON_VERCEL
+
+# Conditional Selenium imports - only in local dev environment
+if HAS_SELENIUM_SUPPORT:
+    try:
+        from selenium import webdriver
+        from selenium.webdriver.chrome.service import Service
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.chrome.options import Options
+        try:
+            from webdriver_manager.chrome import ChromeDriverManager
+            USE_WEBDRIVER_MANAGER = True
+        except ImportError:
+            USE_WEBDRIVER_MANAGER = False
+        print("✅ Selenium support enabled for local development")
+        
+        # Keep track of active drivers for cleanup if needed
+        active_drivers = []
+    except ImportError:
+        print("⚠️ Selenium not available - falling back to client-side only")
+        HAS_SELENIUM_SUPPORT = False
+else:
+    print(f"🚫 Selenium disabled (ENABLE_SELENIUM={ENABLE_SELENIUM}, ON_VERCEL={ON_VERCEL})")
+
 # --- APP SETUP ---
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'a_very_secret_key_for_development')
@@ -89,6 +118,12 @@ TEMPLATE_PDF = os.path.join(APP_ROOT, 'static', 'base_template.pdf')
 
 PROFILE_FILE = os.path.join('/tmp', 'profile.json') if os.environ.get("VERCEL") else os.path.join(APP_ROOT, 'profile.json')
 
+
+# --- SECURITY HELPERS ---
+def is_local_request():
+    """Check if request is from local machine (security check for Selenium)"""
+    ip = request.remote_addr or ''
+    return ip in ['127.0.0.1', '::1', 'localhost']
 
 # --- PROFILE HELPERS ---
 def save_profile(data):
@@ -127,8 +162,6 @@ def generate_autofill_url(user_profile, ticket_data):
 @app.route('/')
 def index():
     profile = load_profile()
-    if not profile:
-        return redirect(url_for('setup_profile'))
     return render_template('index.html', profile=profile)
 
 @app.route('/sw.js')
@@ -399,10 +432,6 @@ def scan_ticket():
             print(f"Fallback OCR also failed: {fallback_error}")
             return jsonify(success=False, message=f"OCR failed: {str(e)}. Try manual entry."), 500
 
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
-
 # Add autofill_script route to support in-browser fight ticket autofill
 @app.route('/autofill_script')
 def autofill_script():
@@ -416,122 +445,285 @@ def autofill_script():
     ])
 
     return render_template('autofill_script.html', profile=profile, ticket_number=ticket_number, message=message)
+
 @app.route('/fight-ticket')
 def fight_ticket_redirect():
     ticket_number = request.args.get('ticket_number', '')
     return redirect(url_for('autofill_script', ticket_number=ticket_number))
-@app.route('/fight_ticket_selenium', methods=['POST'])
-def fight_ticket_selenium():
-    """Server-side Selenium automation for Montreal form filling"""
-    try:
-        ticket_number = request.form.get('ticket_number')
-        if not ticket_number or len(ticket_number) != 9 or not ticket_number.isdigit():
-            return jsonify(success=False, message="Valid 9-digit ticket number required"), 400
+
+@app.route('/fight_ticket_form')
+def fight_ticket_form():
+    """Render the enhanced fight ticket form with all options"""
+    ticket_number = request.args.get('ticket_number', '')
+    profile = load_profile()
+    
+    if not profile:
+        flash('Please set up your profile first before fighting a ticket.', 'warning')
+        return redirect(url_for('setup_profile'))
+    
+    # Generate explanation message
+    explanation = random.choice([
+        "I had paid for parking through the app, but the officer issued the ticket just a few minutes before the transaction was processed. I have attached the receipt showing proof of payment.",
+        "I am pleading not guilty because I paid for parking using the mobile app at the time of parking. The ticket was issued either just before or right after the payment was confirmed. I've included the receipt to show this.",
+        "I received a parking ticket even though I had paid using the parking app. The ticket was likely issued within a very short window before the payment was processed. I've attached the app receipt showing the payment time as proof."
+    ])
+    
+    form_data = {
+        'ticket_number': ticket_number,
+        'first_name': profile.get('first_name', ''),
+        'last_name': profile.get('last_name', ''),
+        'license': profile.get('license', ''),
+        'address': profile.get('address', ''),
+        'city': profile.get('city', ''),
+        'postal_code': profile.get('postal_code', ''),
+        'email': profile.get('email', ''),
+        'explanation': explanation
+    }
+    
+    return render_template('fight_ticket.html', 
+                         form_data=form_data, 
+                         has_selenium_support=HAS_SELENIUM_SUPPORT)
+# --- SELENIUM ROUTES ---
+if HAS_SELENIUM_SUPPORT:
+    @app.route('/fight_ticket_selenium', methods=['POST'])
+    def fight_ticket_selenium():
+        """Local-only Selenium automation for Montreal form filling"""
+        print(f"🤖 Selenium route called - starting automation...")
         
-        profile = load_profile()
-        if not profile:
-            return jsonify(success=False, message="Profile not found. Please set up your profile first."), 400
+        # Security check: only allow local requests
+        if not is_local_request():
+            print(f"❌ Access denied from {request.remote_addr}")
+            abort(403, "Selenium automation only available for local requests")
         
-        # Import Selenium here to avoid issues on platforms where it's not available
-        from selenium import webdriver
-        from selenium.webdriver.chrome.service import Service
-        from selenium.webdriver.common.by import By
-        from selenium.webdriver.support.ui import WebDriverWait
-        from selenium.webdriver.support import expected_conditions as EC
-        from selenium.webdriver.chrome.options import Options
-        import time
-        
-        # Set up Chrome options for Heroku environment
-        chrome_options = Options()
-        chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_argument("--disable-dev-shm-usage")
-        chrome_options.add_argument("--disable-gpu")
-        chrome_options.add_argument("--remote-debugging-port=9222")
-        
-        # Heroku-specific Chrome setup
-        if os.environ.get("DYNO"):  # Running on Heroku
-            chrome_options.add_argument("--headless")
-            chrome_options.add_argument("--disable-extensions")
-            chrome_options.add_argument("--no-first-run")
-            chrome_options.add_argument("--disable-default-apps")
-            chrome_options.add_argument("--single-process")
-            chrome_options.binary_location = "/app/.chrome-for-testing/chrome-linux64/chrome"
-            driver = webdriver.Chrome(options=chrome_options)
-        else:
-            # Local development setup
-            driver_path = r"C:\Users\ADMIN\Desktop\chromedriver.exe"
-            if os.path.exists(driver_path):
-                service = Service(driver_path)
-                driver = webdriver.Chrome(service=service, options=chrome_options)
-            else:
-                # Fallback to system PATH chromedriver
-                driver = webdriver.Chrome(options=chrome_options)
+        print(f"✅ Local request verified from {request.remote_addr}")
         
         try:
-            driver.maximize_window()
+            # Handle both form data and JSON data
+            if request.content_type == 'application/json':
+                data = request.get_json(force=True) or {}
+                ticket_number = data.get('ticket_number')
+            else:
+                data = request.form.to_dict()
+                ticket_number = request.form.get('ticket_number')
             
-            # Load Montreal ticket page
-            driver.get("https://services.montreal.ca/plaidoyer/rechercher/en")
-            wait = WebDriverWait(driver, 20)
+            if not ticket_number or len(ticket_number) != 9 or not ticket_number.isdigit():
+                return jsonify(ok=False, error="Valid 9-digit ticket number required"), 400
             
-            # Step 1: Enter ticket number and search
-            ticket_input = wait.until(EC.presence_of_element_located((By.ID, "searchTxtStatementNo")))
-            ticket_input.send_keys(ticket_number)
+            profile = load_profile()
+            if not profile:
+                return jsonify(ok=False, error="Profile not found. Please set up your profile first."), 400
             
-            search_btn = wait.until(EC.element_to_be_clickable((By.ID, "searchBtnSubmit")))
-            search_btn.click()
+            # Set up Chrome options for local development
+            options = Options()
+            options.add_argument('--start-maximized')
+            options.add_argument('--disable-blink-features=AutomationControlled')
+            options.add_experimental_option("excludeSwitches", ["enable-automation"])
+            options.add_experimental_option('useAutomationExtension', False)
             
-            # Step 2: Select "person whose name appears"
-            who_dropdown = wait.until(EC.presence_of_element_located((By.ID, "who")))
-            who_dropdown.click()
-            time.sleep(0.5)
-            option = who_dropdown.find_element(By.CSS_SELECTOR, "option[value='1']")
-            option.click()
+            # Add SSL and connectivity options
+            options.add_argument('--ignore-certificate-errors')
+            options.add_argument('--ignore-ssl-errors')
+            options.add_argument('--allow-running-insecure-content')
+            options.add_argument('--disable-web-security')
+            options.add_argument('--disable-features=VizDisplayCompositor')
+            options.add_argument('--no-sandbox')
+            options.add_argument('--disable-dev-shm-usage')
             
-            # Step 3: Fill personal information
-            wait.until(EC.presence_of_element_located((By.ID, "firstName"))).send_keys(profile.get('first_name', ''))
-            driver.find_element(By.ID, "lastName").send_keys(profile.get('last_name', ''))
-            driver.find_element(By.ID, "licenceNumber").send_keys(profile.get('license', ''))
-            driver.find_element(By.ID, "address").send_keys(profile.get('address', ''))
-            driver.find_element(By.ID, "city").send_keys(profile.get('city', ''))
-            driver.find_element(By.ID, "postalCode").send_keys(profile.get('postal_code', ''))
-            driver.find_element(By.ID, "email").send_keys(profile.get('email', ''))
-            driver.find_element(By.ID, "confEmail").send_keys(profile.get('email', ''))
+            # Set up WebDriver
+            print("🛠️ Setting up Chrome WebDriver...")
+            driver_path = os.getenv('CHROMEDRIVER_PATH', r"C:\Users\ADMIN\Desktop\chromedriver.exe")
             
-            # Step 4: Add explanation
-            messages = [
-                "I had paid for parking through the app, but the officer issued the ticket just a few minutes before the transaction was processed. I have attached the receipt showing proof of payment.",
-                "I am pleading not guilty because I paid for parking using the mobile app at the time of parking. The ticket was issued either just before or right after the payment was confirmed. I've included the receipt to show this.",
-                "I received a parking ticket even though I had paid using the parking app. The ticket was likely issued within a very short window before the payment was processed. I've attached the app receipt showing the payment time as proof."
-            ]
-            chosen_message = random.choice(messages)
-            explanation_field = driver.find_element(By.ID, "explanation")
-            explanation_field.send_keys(chosen_message)
+            try:
+                if USE_WEBDRIVER_MANAGER:
+                    # Use webdriver-manager for automatic ChromeDriver management
+                    print("🔄 Downloading/updating ChromeDriver...")
+                    service = Service(ChromeDriverManager().install())
+                    print(f"🤖 Using WebDriver Manager for Chrome")
+                elif os.path.exists(driver_path):
+                    # Use specified driver path
+                    service = Service(driver_path)
+                    print(f"🤖 Using ChromeDriver at: {driver_path}")
+                else:
+                    # Try system PATH
+                    service = Service()
+                    print(f"🤖 Using ChromeDriver from system PATH")
+                
+                print("🌐 Starting Chrome browser...")
+                driver = webdriver.Chrome(service=service, options=options)
+                active_drivers.append(driver)
+                wait = WebDriverWait(driver, 20)
+                print("✅ Chrome browser started successfully")
+                
+            except Exception as webdriver_error:
+                error_msg = str(webdriver_error)
+                print(f"❌ WebDriver initialization failed: {error_msg}")
+                
+                # Provide helpful error messages
+                if "chromedriver" in error_msg.lower():
+                    return jsonify(ok=False, error="ChromeDriver not found. Please install Chrome browser or check ChromeDriver path."), 500
+                elif "chrome" in error_msg.lower():
+                    return jsonify(ok=False, error="Chrome browser not found. Please install Google Chrome."), 500
+                else:
+                    return jsonify(ok=False, error=f"Failed to start browser: {error_msg}"), 500
             
-            # Give a moment for everything to settle
-            time.sleep(2)
+            try:
+                print(f"🌐 Opening Montreal dispute page...")
+                
+                # Try to access the website with retries
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        driver.get('https://services.montreal.ca/plaidoyer/rechercher/en')
+                        # Wait for page to load
+                        wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+                        print(f"✅ Successfully loaded Montreal website (attempt {attempt + 1})")
+                        break
+                    except Exception as e:
+                        print(f"⚠️ Attempt {attempt + 1} failed: {e}")
+                        if attempt == max_retries - 1:
+                            raise Exception(f"Could not access Montreal website after {max_retries} attempts. Check your internet connection.")
+                        time.sleep(2)
+                
+                # Handle potential cookie banner
+                try:
+                    cookie_accept = wait.until(EC.element_to_be_clickable((By.ID, 'onetrust-accept-btn-handler')))
+                    cookie_accept.click()
+                    print("✅ Accepted cookie banner")
+                except Exception:
+                    pass  # No cookie banner or different selector
+                
+                # Step 1: Enter ticket number and search
+                print(f"🔍 Searching for ticket {ticket_number}...")
+                ticket_input = wait.until(EC.presence_of_element_located((By.ID, 'searchTxtStatementNo')))
+                ticket_input.clear()
+                ticket_input.send_keys(ticket_number)
+                
+                search_btn = wait.until(EC.element_to_be_clickable((By.ID, 'searchBtnSubmit')))
+                search_btn.click()
+                
+                # Handle potential "Continue" or "Next" button after search
+                try:
+                    import time
+                    time.sleep(2)  # Wait for potential redirect/loading
+                    continue_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(normalize-space(), 'Continue') or contains(normalize-space(), 'Next') or contains(normalize-space(), 'Continuer')]")))
+                    continue_btn.click()
+                    print("✅ Clicked Continue button")
+                except Exception:
+                    pass  # No continue button needed
+                
+                # Step 2: Select "person whose name appears" (value='1')
+                print("👤 Selecting person type...")
+                try:
+                    who_dropdown = wait.until(EC.presence_of_element_located((By.ID, 'who')))
+                    who_dropdown.click()
+                    time.sleep(0.5)
+                    option = who_dropdown.find_element(By.CSS_SELECTOR, "option[value='1']")
+                    option.click()
+                    print("✅ Selected 'person whose name appears'")
+                except Exception as e:
+                    print(f"⚠️ Could not select person type: {e}")
+                
+                # Helper function to fill form fields safely
+                def fill_field(field_id, value):
+                    if not value:
+                        return False
+                    try:
+                        element = wait.until(EC.presence_of_element_located((By.ID, field_id)))
+                        element.clear()
+                        element.send_keys(str(value))
+                        return True
+                    except Exception as e:
+                        print(f"⚠️ Could not fill {field_id}: {e}")
+                        return False
+                
+                # Step 3: Fill personal information
+                print("📝 Filling personal information...")
+                filled_fields = 0
+                
+                fields = [
+                    ('firstName', data.get('first_name') or profile.get('first_name')),
+                    ('lastName', data.get('last_name') or profile.get('last_name')),
+                    ('licenceNumber', data.get('license') or profile.get('license')),
+                    ('address', data.get('address') or profile.get('address')),
+                    ('city', data.get('city') or profile.get('city')),
+                    ('postalCode', data.get('postal_code') or profile.get('postal_code')),
+                    ('email', data.get('email') or profile.get('email')),
+                    ('confEmail', data.get('email') or profile.get('email'))
+                ]
+                
+                for field_id, value in fields:
+                    if fill_field(field_id, value):
+                        filled_fields += 1
+                
+                # Step 4: Fill explanation
+                explanation_text = data.get('explanation')
+                if not explanation_text:
+                    messages = [
+                        "I had paid for parking through the app, but the officer issued the ticket just a few minutes before the transaction was processed. I have attached the receipt showing proof of payment.",
+                        "I am pleading not guilty because I paid for parking using the mobile app at the time of parking. The ticket was issued either just before or right after the payment was confirmed. I've included the receipt to show this.",
+                        "I received a parking ticket even though I had paid using the parking app. The ticket was likely issued within a very short window before the payment was processed. I've attached the app receipt showing the payment time as proof."
+                    ]
+                    explanation_text = random.choice(messages)
+                
+                if fill_field('explanation', explanation_text):
+                    filled_fields += 1
+                    print("✅ Added explanation")
+                
+                # Final wait for everything to settle
+                time.sleep(1)
+                
+                print(f"✅ Successfully filled {filled_fields} fields for ticket {ticket_number}")
+                print("🖥️ Chrome window is open - review the information and submit when ready")
+                
+                # DO NOT quit the driver - let user control the browser
+                return jsonify({
+                    'ok': True,
+                    'message': f'Chrome opened and filled {filled_fields} fields for ticket #{ticket_number}. Review and submit manually.',
+                    'ticket_number': ticket_number,
+                    'fields_filled': filled_fields
+                })
+                
+            except Exception as selenium_error:
+                print(f"❌ Selenium error: {selenium_error}")
+                return jsonify(ok=False, error=f"Automation error: {str(selenium_error)}"), 500
             
-            # Keep browser open for user to review and submit
-            # Don't quit the driver - let user control it
-            print(f"✅ Form filled successfully for ticket {ticket_number}")
-            print("Browser will remain open for user to review and submit")
-            
-            return jsonify({
-                'success': True, 
-                'message': f"Montreal form opened and filled successfully for ticket #{ticket_number}! The browser window is now open - review the information and submit when ready.",
-                'ticket_number': ticket_number
-            })
-            
-        except Exception as selenium_error:
-            # Don't automatically close browser on errors - user might want to see what happened
-            print(f"Selenium error occurred: {selenium_error}")
-            raise selenium_error
-            
-    except ImportError:
-        return jsonify(success=False, message="Selenium not available on this platform. Please use manual form filling."), 500
-    except Exception as e:
-        print(f"Selenium automation error: {e}")
-        return jsonify(success=False, message=f"Automation failed: {str(e)}"), 500
+        except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            print(f"❌ General error: {e}")
+            print(f"Full traceback:\n{error_details}")
+            return jsonify(ok=False, error=f"Selenium failed: {str(e)}", details=error_details), 500
+
+else:
+    # Selenium is disabled - provide fallback route
+    @app.route('/fight_ticket_selenium', methods=['POST'])
+    def fight_ticket_selenium_disabled():
+        import os
+        debug_info = {
+            'ENABLE_SELENIUM': os.getenv('ENABLE_SELENIUM'),
+            'VERCEL': os.getenv('VERCEL'),
+            'HAS_SELENIUM_SUPPORT': HAS_SELENIUM_SUPPORT,
+            'reason': 'Selenium is disabled in this environment'
+        }
+        print(f"🚫 Selenium disabled. Debug info: {debug_info}")
+        return jsonify(
+            ok=False, 
+            error="Selenium automation is disabled in this environment. Use the client-side options instead.",
+            debug=debug_info
+        ), 501
+
+@app.route('/debug_selenium')
+def debug_selenium():
+    """Debug route to check Selenium configuration"""
+    import os
+    debug_info = {
+        'ENABLE_SELENIUM': os.getenv('ENABLE_SELENIUM'),
+        'VERCEL': os.getenv('VERCEL'), 
+        'HAS_SELENIUM_SUPPORT': HAS_SELENIUM_SUPPORT,
+        'USE_WEBDRIVER_MANAGER': globals().get('USE_WEBDRIVER_MANAGER', 'Not set'),
+        'selenium_route_active': HAS_SELENIUM_SUPPORT
+    }
+    return jsonify(debug_info)
 
 @app.route('/fight_ticket', methods=['GET', 'POST'])
 def fight_ticket():
