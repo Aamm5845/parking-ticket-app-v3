@@ -390,11 +390,16 @@ def generate_pdf():
 
 @app.route('/scan-ticket', methods=['POST'])
 def scan_ticket():
+    import traceback
+    
     # Try to get/reinitialize client if needed
+    print("🔍 Starting OCR scan...")
     vision_client = client or get_vision_client()
     
     if not vision_client:
-        return jsonify(success=False, message="OCR not configured. Check Google Cloud credentials."), 500
+        error_msg = "OCR not configured. Google Cloud Vision client failed to initialize."
+        print(f"❌ {error_msg}")
+        return jsonify(success=False, message=error_msg), 500
         
     if 'ticket_image' not in request.files:
         return jsonify(success=False, message="No image file provided."), 400
@@ -404,26 +409,39 @@ def scan_ticket():
         return jsonify(success=False, message="No file selected."), 400
         
     try:
-        print("Processing OCR request...")
+        print(f"📸 Processing image: {file.filename}")
         content = file.read()
+        print(f"📏 Image size: {len(content)} bytes")
         image = vision.Image(content=content)
         
         # Use the vision client with SSL handling
+        print("☁️ Calling Google Cloud Vision API...")
         response = vision_client.document_text_detection(image=image)
         
         if response.error.message:
-            raise Exception(f"Vision API error: {response.error.message}")
+            error_msg = f"Vision API error: {response.error.message}"
+            print(f"❌ {error_msg}")
+            raise Exception(error_msg)
             
         raw_text = response.full_text_annotation.text
-        print(f"OCR extracted text: {raw_text[:100]}...")  # Log first 100 chars
+        print(f"✅ OCR successful! Extracted {len(raw_text)} characters")
+        print(f"📄 First 200 chars: {raw_text[:200]}...")
 
         ticket_number, space_number, extracted_date, extracted_time = "", "", "", ""
         ticket_match = re.search(r'\b(\d{3})\s*(\d{3})\s*(\d{3})\b', raw_text)
         if ticket_match:
             ticket_number = "".join(ticket_match.groups())
+            print(f"🎫 Found ticket number: {ticket_number}")
+        else:
+            print("⚠️ No ticket number found")
+            
         space_match = re.search(r'(PL\d+)', raw_text, re.IGNORECASE)
         if space_match:
             space_number = space_match.group(1).upper()
+            print(f"🅿️ Found space: {space_number}")
+        else:
+            print("⚠️ No space number found")
+            
         date_time_match = (
             re.search(r'au\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})', raw_text, re.IGNORECASE)
             or re.search(r'Date\s+de\s+signification:\s*(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})', raw_text, re.IGNORECASE)
@@ -431,11 +449,16 @@ def scan_ticket():
         )
         if date_time_match:
             extracted_date, extracted_time = date_time_match.groups()
+            print(f"📅 Found date/time: {extracted_date} {extracted_time}")
+        else:
+            print("⚠️ No date/time found")
 
         return jsonify(success=True, ticket_number=ticket_number, space=space_number, date=extracted_date, start_time=extracted_time)
         
     except Exception as e:
-        print(f"Google Cloud Vision failed: {e}")
+        error_trace = traceback.format_exc()
+        print(f"❌ Google Cloud Vision failed: {e}")
+        print(f"Full traceback:\n{error_trace}")
         return jsonify(success=False, message=f"OCR failed: {str(e)}. Please enter ticket details manually."), 500
 
 # Add autofill_script route to support in-browser fight ticket autofill
